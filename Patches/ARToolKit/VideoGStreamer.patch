@@ -1,0 +1,19 @@
+*** ARToolKit/lib/SRC/VideoGStreamer/video.c	2007-01-23 01:39:27.000000000 +0100
+--- ARToolKit-2/lib/SRC/VideoGStreamer/video.c	2012-06-11 23:41:08.629620186 +0200
+***************
+*** 375,381 ****
+  ar2VideoCapNext(AR2VideoParamT *vid)
+  {
+  	/* gstreamer should */
+! 	return TRUE;
+  }
+  
+  int
+--- 375,381 ----
+  ar2VideoCapNext(AR2VideoParamT *vid)
+  {
+  	/* gstreamer should */
+! 	return 0;
+  }
+  
+  int

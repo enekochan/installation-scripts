@@ -1,0 +1,153 @@
+diff -crB OpenSceneGraph-2.9.6/src/osgPlugins/curl/ReaderWriterCURL.cpp OpenSceneGraph-2.9.6-12.04/src/osgPlugins/curl/ReaderWriterCURL.cpp
+*** OpenSceneGraph-2.9.6/src/osgPlugins/curl/ReaderWriterCURL.cpp	2012-06-12 21:18:03.238194321 +0200
+--- OpenSceneGraph-2.9.6-12.04/src/osgPlugins/curl/ReaderWriterCURL.cpp	2012-06-12 21:22:10.728201595 +0200
+***************
+*** 21,27 ****
+  #include <fstream>
+  
+  #include <curl/curl.h>
+- #include <curl/types.h>
+  
+  #include "ReaderWriterCURL.h"
+  
+--- 21,26 ----
+diff -crB OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoderAudio.cpp OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoderAudio.cpp
+*** OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoderAudio.cpp	2012-06-12 21:17:57.714194138 +0200
+--- OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoderAudio.cpp	2012-06-12 21:22:01.452201292 +0200
+***************
+*** 273,279 ****
+--- 273,289 ----
+          {
+              int data_size = size;
+  
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++             AVPacket avpkt;
++             av_init_packet(&avpkt);
++             avpkt.data = const_cast<uint8_t *>(m_packet_data);
++             avpkt.size = m_bytes_remaining;
++ 
++             const int bytes_decoded = avcodec_decode_audio3(m_context, reinterpret_cast<int16_t*>(buffer), &data_size, &avpkt);
++ #else
++             // fallback for older versions of ffmpeg that don't have avcodec_decode_audio3.
+              const int bytes_decoded = avcodec_decode_audio2(m_context, reinterpret_cast<int16_t*>(buffer), &data_size, m_packet_data, m_bytes_remaining);
++ #endif
+  
+              if (bytes_decoded < 0)
+              {
+diff -crB OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp
+*** OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp	2012-06-12 21:17:57.730194140 +0200
+--- OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp	2012-06-12 21:22:01.080201281 +0200
+***************
+*** 1,6 ****
+  
+  #include "FFmpegDecoder.hpp"
+! 
+  #include <osg/Notify>
+  #include <osgDB/FileNameUtils>
+  
+--- 1,6 ----
+  
+  #include "FFmpegDecoder.hpp"
+! #include <libavutil/mathematics.h>
+  #include <osg/Notify>
+  #include <osgDB/FileNameUtils>
+  
+***************
+*** 81,99 ****
+              if (error != 0)
+              {
+                  std::string error_str;
+!                 switch (error)
+!                 {
+!                     //case AVERROR_UNKNOWN: error_str = "AVERROR_UNKNOWN"; break;   // same value as AVERROR_INVALIDDATA
+!                     case AVERROR_IO: error_str = "AVERROR_IO"; break;
+!                     case AVERROR_NUMEXPECTED: error_str = "AVERROR_NUMEXPECTED"; break;
+!                     case AVERROR_INVALIDDATA: error_str = "AVERROR_INVALIDDATA"; break;
+!                     case AVERROR_NOMEM: error_str = "AVERROR_NOMEM"; break;
+!                     case AVERROR_NOFMT: error_str = "AVERROR_NOFMT"; break;
+!                     case AVERROR_NOTSUPP: error_str = "AVERROR_NOTSUPP"; break;
+!                     case AVERROR_NOENT: error_str = "AVERROR_NOENT"; break;
+!                     case AVERROR_PATCHWELCOME: error_str = "AVERROR_PATCHWELCOME"; break;
+!                     default: error_str = "Unknown error"; break;
+!                 }
+  
+                  throw std::runtime_error("av_open_input_file() failed : " + error_str);
+              }
+--- 81,87 ----
+              if (error != 0)
+              {
+                  std::string error_str;
+!                 error_str = AVERROR(error);
+  
+                  throw std::runtime_error("av_open_input_file() failed : " + error_str);
+              }
+***************
+*** 217,223 ****
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
+!         if (m_format_context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
+          {
+              m_audio_stream = m_format_context->streams[i];
+              m_audio_index = i;
+--- 205,211 ----
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
+!         if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+          {
+              m_audio_stream = m_format_context->streams[i];
+              m_audio_index = i;
+***************
+*** 235,241 ****
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
+!         if (m_format_context->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
+          {
+              m_video_stream = m_format_context->streams[i];
+              m_video_index = i;
+--- 223,229 ----
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
+!         if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+          {
+              m_video_stream = m_format_context->streams[i];
+              m_video_index = i;
+diff -crB OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoderVideo.cpp OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoderVideo.cpp
+*** OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegDecoderVideo.cpp	2012-06-12 21:17:57.726194140 +0200
+--- OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegDecoderVideo.cpp	2012-06-12 21:22:01.084201281 +0200
+***************
+*** 165,171 ****
+--- 165,181 ----
+  
+              int frame_finished = 0;
+  
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++             AVPacket avpkt;
++             av_init_packet(&avpkt);
++             avpkt.data = const_cast<uint8_t *>(m_packet_data);
++             avpkt.size = m_bytes_remaining;
++ 
++             const int bytes_decoded = avcodec_decode_video2(m_context, m_frame.get(), &frame_finished, &avpkt);
++ #else
++             // fallback for older versions of ffmpeg that don't have avcodec_decode_video2.
+              const int bytes_decoded = avcodec_decode_video(m_context, m_frame.get(), &frame_finished, m_packet_data, m_bytes_remaining);
++ #endif
+  
+              if (bytes_decoded < 0)
+                  throw std::runtime_error("avcodec_decode_video failed()");
+diff -crB OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp
+*** OpenSceneGraph-2.9.6/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp	2012-06-12 21:17:57.714194138 +0200
+--- OpenSceneGraph-2.9.6-12.04/src/osgPlugins/ffmpeg/FFmpegHeaders.hpp	2012-06-12 21:22:01.148201274 +0200
+***************
+*** 6,11 ****
+--- 6,12 ----
+  extern "C"
+  {
+  #define __STDC_CONSTANT_MACROS
++ #define FF_API_OLD_SAMPLE_FMT 0
+  #include <errno.h>    // for error codes defined in avformat.h
+  #include <stdint.h>
+  #include <avcodec.h>

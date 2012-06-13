@@ -1,0 +1,13 @@
+*** osgART_2.0_RC3/include/osgART/Utils	2008-07-10 01:02:53.000000000 +0200
+--- osgART_2.0_RC3-2/include/osgART/Utils	2012-06-13 01:17:31.154571620 +0200
+***************
+*** 26,31 ****
+--- 26,33 ----
+  
+  // General
+  #include <iostream>
++ #include <cstdlib>
++ #include <limits>
+  
+  // STL
+  #include <string>

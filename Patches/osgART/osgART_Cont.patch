@@ -1,0 +1,21 @@
+*** osgART_2.0_RC3/src/osgART/Tracker/ARToolKit/SingleMarker.cpp	2008-08-08 00:48:43.000000000 +0200
+--- osgART_2.0_RC3-2/src/osgART/Tracker/ARToolKit/SingleMarker.cpp	2012-06-13 01:44:21.622591910 +0200
+***************
+*** 73,80 ****
+  			// valid.
+  		} else {
+  			m_valid = true;
+! 			//arGetTransMatCont(markerInfo, patt_trans, patt_center, patt_width, patt_trans);
+! 			arGetTransMat(markerInfo, patt_center, patt_width, patt_trans);
+  			_confidence = markerInfo->cf;
+  			double modelView[16];
+  			arglCameraViewRH(patt_trans, modelView, 1.0); // scale = 1.0.
+--- 73,80 ----
+  			// valid.
+  		} else {
+  			m_valid = true;
+! 			arGetTransMatCont(markerInfo, patt_trans, patt_center, patt_width, patt_trans);
+! 			//arGetTransMat(markerInfo, patt_center, patt_width, patt_trans);
+  			_confidence = markerInfo->cf;
+  			double modelView[16];
+  			arglCameraViewRH(patt_trans, modelView, 1.0); // scale = 1.0.

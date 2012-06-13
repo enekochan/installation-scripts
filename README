@@ -1,0 +1,58 @@
+
+ARToolKit, Collada DOM, OpenSceneGraph and osgART installation scripts for Ubuntu.
+
+They are intended to work on multiple versions of Ubuntu from 10.04 to 12.04.
+Still working on this though (testing in all versions takes time...).
+
+Run in this order:
+
+1.- installARToolKit.sh
+2.- installCollada.sh
+3.- installOpenSceneGraph.sh
+4.- installosgART.sh
+
+If you find any bugs please don't hesitate contacting me (enekochan [at] tech.enekochan.com)
+or asking for permission to patch the files in Github.
+
+More details about the installation process:
+
+http://tech.enekochan.com/2012/05/01/install-artoolkit-2-72-1-in-ubuntu-10-10/
+http://tech.enekochan.com/2012/05/21/install-artoolkit-2-72-1-in-ubuntu-11-10-and-12-04/
+http://tech.enekochan.com/2012/06/10/install-collada-dom-library-in-ubuntu-12-04/
+http://tech.enekochan.com/2012/06/10/install-openscenegraph-2-8-3-with-collada-support-in-ubuntu-12-04/
+http://tech.enekochan.com/2012/06/10/install-openscenegraph-2-9-6-with-collada-support-in-ubuntu-12-04/
+http://tech.enekochan.com/2012/06/10/install-osgart-2-0-rc3-with-openscenegraph-2-8-3-with-collada-support-in-ubuntu-12-04/
+
+*******************
+*ARToolKit Patches*
+*******************
+
+"VideoGStreamer.patch" fixes a problem with osgART that made it not displaying
+the video feed on the background (the background was black).
+
+I've created a new "artk-v4l2-2.72.1.20120613.patch" from "artk-v4l2-2.72.1.20101003.patch"
+to fix a problem in util applications because some of them configured the
+"vconf" variable with a constant value and thus didn't read the ARTOOLKIT_CONFIG
+system variable.
+
+"Freenect.patch" adds support for OpenKinect (via libfreenect) video feed. You'll
+have to install libfreenect to make this work.
+
+The patches that have "GST_LIBS" in their name fix the problem installing
+ARToolKit in Ubuntu 11.10 and upper.
+
+
+************************
+*OpenSceneGraph Patches*
+************************
+
+Different patchs to solve some FFmpeg compatibility issues in some Ubuntu versions.
+
+
+****************
+*osgART Patches*
+****************
+
+"osgART_Permissive.patch" solves a issue that forced using -fpermissive when configuring
+"osgART_Cont.patch" gives the option to use a more smooth way of tracking the pattern
+in ARToolKit (arGetTransMatCont instead of arGetTransMat).

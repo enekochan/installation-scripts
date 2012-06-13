@@ -1,0 +1,2880 @@
+diff -urN ARToolKit-2.72.1.original/Configure ARToolKit/Configure
+--- ARToolKit-2.72.1.original/Configure	2006-12-06 09:37:23.000000000 +0900
++++ ARToolKit/Configure	2010-10-03 14:59:39.000000000 +0900
+@@ -7,7 +7,8 @@
+       lib/SRC \
+       lib/SRC/AR lib/SRC/ARMulti lib/SRC/Gl \
+       lib/SRC/VideoLinux1394Cam lib/SRC/VideoLinuxDV \
+-      lib/SRC/VideoLinuxV4L lib/SRC/VideoSGI \
++      lib/SRC/VideoLinuxV4L lib/SRC/VideoLinuxV4L2 \
++      lib/SRC/VideoSGI \
+       lib/SRC/VideoMacOSX \
+       lib/SRC/VideoGStreamer \
+       lib/SRC/ARvrml \
+@@ -25,7 +26,8 @@
+ SED=/tmp/SED.$$
+ trap "rm -f $SED; exit 0" 0 1 2 3 15
+ 
+-
++ARCH="x86"
++echo "Assuming x86 architecture (by patch of 2010/10/03)"
+ 
+ E=`uname`
+ if [ "$E" = "Linux" ]
+@@ -33,9 +35,10 @@
+     echo "Select a video capture driver."
+     echo "  1: Video4Linux"
+     echo "  2: Video4Linux+JPEG Decompression (EyeToy)"
+-    echo "  3: Digital Video Camcoder through IEEE 1394 (DV Format)"
+-    echo "  4: Digital Video Camera through IEEE 1394 (VGA NONCOMPRESSED Image Format)"
+-    echo "  5: GStreamer Media Framework"
++    echo "  3: Video4Linux2"
++    echo "  4: Digital Video Camcoder through IEEE 1394 (DV Format)"
++    echo "  5: Digital Video Camera through IEEE 1394 (VGA NONCOMPRESSED Image Format)"
++    echo "  6: GStreamer Media Framework"
+     echo -n "Enter : "
+     read ANS
+     if [ "$ANS" = "1" ]
+@@ -86,6 +89,29 @@
+         CONFIG="AR_INPUT_V4L"
+     elif [ "$ANS" = "3" ]
+     then
++		echo
++		echo "Color conversion should use x86 assembly (not working for 64bit)?"
++ 		echo -n "Enter : "
++		read ANS
++		if [ "$ANS" = "y" ]
++		then
++			CCVT_OBJ="ccvt_i386.o"
++		elif [ "$ANS" = "n" ]
++		then
++			CCVT_OBJ="ccvt_c.o"
++		else
++			echo "Please enter y or n."
++			exit 0
++		fi		
++        VIDEO_DRIVER="VideoLinuxV4L2"
++        CFLAG="-O -I/usr/X11R6/include -DUSE_EYETOY -I/usr/src/linux-headers-`uname -r`/include -I/usr/src/linux-headers-`uname -r`/arch/$ARCH/include"
++        LDFLAG="-L/usr/X11R6/lib"
++        ARFLAG="rs"
++        RANLIB=""
++        LIBS="-lglut -lGLU -lGL -lXi -lXmu -lX11 -lm -ljpeg"
++        CONFIG="AR_INPUT_V4L2"
++    elif [ "$ANS" = "4" ]
++    then
+         VIDEO_DRIVER="VideoLinuxDV"
+         CFLAG="-O -I/usr/include/glib-1.2 -I/usr/lib/glib/include -I/usr/X11R6/include"
+         LDFLAG="-L/usr/X11R6/lib -L/usr/local/lib"
+@@ -93,7 +119,7 @@
+         RANLIB=""
+         LIBS="-lraw1394 -ldv -lpthread -lglut -lGLU -lGL -lXi -lXmu -lX11 -lm"
+         CONFIG="AR_INPUT_DV"
+-    elif [ "$ANS" = "4" ]
++    elif [ "$ANS" = "5" ]
+     then
+         VIDEO_DRIVER="VideoLinux1394Cam"
+         CFLAG="-O -I/usr/X11R6/include"
+@@ -102,7 +128,7 @@
+         RANLIB=""
+         LIBS="-lglut -lGLU -lGL -lXi -lXmu -lX11 -lm -lraw1394 -ldc1394_control"
+         CONFIG="AR_INPUT_1394CAM"
+-    elif [ "$ANS" = "5" ]
++    elif [ "$ANS" = "6" ]
+     then
+         VIDEO_DRIVER="VideoGStreamer"
+ 		GST_INCLUDE=`pkg-config --cflags gstreamer-0.10`
+diff -urN ARToolKit-2.72.1.original/include/AR/config.h.in ARToolKit/include/AR/config.h.in
+--- ARToolKit-2.72.1.original/include/AR/config.h.in	2006-11-20 06:21:11.000000000 +0900
++++ ARToolKit/include/AR/config.h.in	2010-10-03 14:06:30.000000000 +0900
+@@ -61,8 +61,9 @@
+ 
+ /*--------------------------------------------------------------*/
+ /*                                                              */
+-/*  For Linux, you should define one of below 4 input method    */
++/*  For Linux, you should define one of below 5 input method    */
+ /*    AR_INPUT_V4L:       use of standard Video4Linux Library   */
++/*    AR_INPUT_V4L2:      use of standard Video4Linux2 Library  */
+ /*    AR_INPUT_GSTREAMER: use of GStreamer Media Framework      */
+ /*    AR_INPUT_DV:        use of DV Camera                      */
+ /*    AR_INPUT_1394CAM:   use of 1394 Digital Camera            */
+@@ -70,6 +71,7 @@
+ /*--------------------------------------------------------------*/
+ #ifdef __linux
+ #undef  AR_INPUT_V4L
++#undef  AR_INPUT_V4L2
+ #undef  AR_INPUT_DV
+ #undef  AR_INPUT_1394CAM
+ #undef  AR_INPUT_GSTREAMER
+@@ -82,6 +84,14 @@
+ #    endif
+ #  endif
+ 
++#  ifdef AR_INPUT_V4L2
++#    ifdef USE_EYETOY
++#      define AR_DEFAULT_PIXEL_FORMAT AR_PIXEL_FORMAT_RGB
++#    else
++#      define AR_DEFAULT_PIXEL_FORMAT AR_PIXEL_FORMAT_BGR
++#    endif
++#  endif
++
+ #  ifdef AR_INPUT_DV
+ #    define  AR_DEFAULT_PIXEL_FORMAT AR_PIXEL_FORMAT_RGB
+ #  endif
+@@ -163,6 +173,17 @@
+ #    define   DEFAULT_VIDEO_MODE          VIDEO_MODE_NTSC
+ #  endif
+ 
++#  ifdef AR_INPUT_V4L2
++#    define   VIDEO_MODE_PAL              0
++#    define   VIDEO_MODE_NTSC             1
++#    define   VIDEO_MODE_SECAM            2
++#    define   DEFAULT_VIDEO_DEVICE        "/dev/video0"
++#    define   DEFAULT_VIDEO_WIDTH         640
++#    define   DEFAULT_VIDEO_HEIGHT        480
++#    define   DEFAULT_VIDEO_CHANNEL       1
++#    define   DEFAULT_VIDEO_MODE          VIDEO_MODE_NTSC
++#  endif
++
+ #  ifdef AR_INPUT_DV
+ /* Defines all moved into video.c now - they are not used anywhere else */
+ #  endif
+diff -urN ARToolKit-2.72.1.original/include/AR/sys/videoLinuxV4L2.h ARToolKit/include/AR/sys/videoLinuxV4L2.h
+--- ARToolKit-2.72.1.original/include/AR/sys/videoLinuxV4L2.h	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/include/AR/sys/videoLinuxV4L2.h	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,67 @@
++/*******************************************************
++ *
++ * Author: Hirokazu Kato
++ *
++ *         kato@sys.im.hiroshima-cu.ac.jp
++ *
++ * Revision: 4.5
++ * Date: 2002/01/01
++ * 
++ * 2004/11/17 Grasset  adding new parameters for better controls of
++ * V4L driver
++ * 2004/11/17 Grasset  adding patch done by XXX for supporting YUV 4:2:0
++ * (adding #define and videoBuffer encoding parameters)
++ * 2006/10/04 S.Goodall: Modified for V4L2 data.
++
++*******************************************************/
++#ifndef AR_VIDEO_LINUX_V4L2_H
++#define AR_VIDEO_LINUX_V4L2_H
++#ifdef  __cplusplus
++extern "C" {
++#endif
++
++#include <stdlib.h>
++#include <linux/types.h>
++#include <linux/videodev2.h>
++
++#include <AR/config.h>
++#include <AR/ar.h>
++
++struct buffer {
++        void *                  start;
++        size_t                  length;
++};
++
++typedef struct {
++  //device controls
++    char                dev[256];
++    int                 channel;
++    int                 width;
++    int                 height;
++    int			palette;
++  //image controls
++    int              brightness;
++    int              contrast;
++    int              saturation;
++    int              hue;
++    int              gamma;
++    int              exposure;
++    int              gain;
++
++  //options controls
++    int                 mode;
++
++    int                 debug;
++
++    int                 fd;
++    int                 video_cont_num;
++    ARUint8             *map;
++    ARUint8             *videoBuffer;
++    int 		n_buffers;
++    struct buffer   *buffers;
++} AR2VideoParamT;
++
++#ifdef  __cplusplus
++}
++#endif
++#endif
+diff -urN ARToolKit-2.72.1.original/include/AR/video.h ARToolKit/include/AR/video.h
+--- ARToolKit-2.72.1.original/include/AR/video.h	2007-01-23 09:39:27.000000000 +0900
++++ ARToolKit/include/AR/video.h	2010-10-03 14:06:30.000000000 +0900
+@@ -101,6 +101,9 @@
+ #  ifdef AR_INPUT_V4L
+ #    include <AR/sys/videoLinuxV4L.h>
+ #  endif
++#  ifdef AR_INPUT_V4L2
++#    include <AR/sys/videoLinuxV4L2.h>
++#  endif
+ #  ifdef  AR_INPUT_DV
+ #    include <AR/sys/videoLinuxDV.h>
+ #  endif
+diff -urN ARToolKit-2.72.1.original/lib/SRC/Makefile.in ARToolKit/lib/SRC/Makefile.in
+--- ARToolKit-2.72.1.original/lib/SRC/Makefile.in	2006-07-10 13:35:17.000000000 +0900
++++ ARToolKit/lib/SRC/Makefile.in	2010-10-03 14:06:30.000000000 +0900
+@@ -12,6 +12,7 @@
+ 	(cd Gl;         make -f Makefile clean)
+ 	(cd VideoSGI;   make -f Makefile clean)
+ 	(cd VideoLinuxV4L;     make -f Makefile clean)
++	(cd VideoLinuxV4L2;    make -f Makefile clean)
+ 	(cd VideoLinuxDV;      make -f Makefile clean)
+ 	(cd VideoLinux1394Cam; make -f Makefile clean)
+ 	(cd VideoMacOSX;       make -f Makefile clean)
+@@ -24,6 +25,7 @@
+ 	(cd Gl;         make -f Makefile allclean)
+ 	(cd VideoSGI;   make -f Makefile allclean)
+ 	(cd VideoLinuxV4L;     make -f Makefile allclean)
++	(cd VideoLinuxV4L2;    make -f Makefile allclean)
+ 	(cd VideoLinuxDV;      make -f Makefile allclean)
+ 	(cd VideoLinux1394Cam; make -f Makefile allclean)
+ 	(cd VideoMacOSX;       make -f Makefile allclean)
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/Makefile.in ARToolKit/lib/SRC/VideoLinuxV4L2/Makefile.in
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/Makefile.in	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/Makefile.in	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,50 @@
++#
++# For instalation. Change this to your settings.
++#
++INC_DIR = ../../../include
++LIB_DIR = ../..
++#
++#  compiler
++#
++CC= cc
++CFLAG= @CFLAG@ -I$(INC_DIR)
++#
++# For making the library
++#
++AR= ar
++ARFLAGS= @ARFLAG@
++#
++#   products
++#
++LIB= ${LIB_DIR}/libARvideo.a
++INCLUDE= ${INC_DIR}/AR/video.h
++#
++#   compilation control
++#
++# LIBOBJS= ${LIB}(video.o) ${LIB}(ccvt_i386.o)
++LIBOBJS= ${LIB}(@CCVT_OBJ@) ${LIB}(video.o)
++
++
++all:		${LIBOBJS}
++
++${LIBOBJS}:	${INCLUDE}
++
++.c.a:
++	${CC} -c ${CFLAG} $<
++	${AR} ${ARFLAGS} $@ $*.o
++	rm -f $*.o
++
++.S.a:
++	${CC} -c ${CFLAG} $<
++	${AR} ${ARFLAGS} $@ $*.o
++	rm -f $*.o
++
++
++clean:
++	rm -f *.o
++	rm -f ${LIB}
++
++allclean:
++	rm -f *.o
++	rm -f ${LIB}
++	rm -f Makefile
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt.h ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt.h
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt.h	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt.h	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,117 @@
++/*  CCVT: ColourConVerT: simple library for converting colourspaces
++    Copyright (C) 2002 Nemosoft Unv.
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++    For questions, remarks, patches, etc. for this program, the author can be
++    reached at nemosoft@smcc.demon.nl.
++*/
++
++/*
++ $Log: ccvt.h,v $
++ Revision 1.2  2006/12/06 00:37:23  retrakker
++ - Added an updated CCVT version which hopefully will work as expected on
++ x64 systems.
++
++ Revision 1.1  2005/05/04 06:53:17  section314
++ Added YUV420P-->RGB conversion
++
++ Revision 1.10  2003/10/24 16:55:18  nemosoft
++ removed erronous log messages
++
++ Revision 1.9  2002/11/03 22:46:25  nemosoft
++ Adding various RGB to RGB functions.
++ Adding proper copyright header too.
++
++ Revision 1.8  2002/04/14 01:00:27  nemosoft
++ Finishing touches: adding const, adding libs for 'show'
++*/
++
++
++#ifndef CCVT_H
++#define CCVT_H
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++/* Colour ConVerT: going from one colour space to another.
++   ** NOTE: the set of available functions is far from complete! **
++
++   Format descriptions:
++   420i = "4:2:0 interlaced"
++           YYYY UU YYYY UU   even lines
++           YYYY VV YYYY VV   odd lines
++           U/V data is subsampled by 2 both in horizontal
++           and vertical directions, and intermixed with the Y values.
++
++   420p = "4:2:0 planar"
++           YYYYYYYY      N lines
++           UUUU          N/2 lines
++           VVVV          N/2 lines
++           U/V is again subsampled, but all the Ys, Us and Vs are placed
++           together in separate buffers. The buffers may be placed in
++           one piece of contiguous memory though, with Y buffer first,
++           followed by U, followed by V.
++
++   yuyv = "4:2:2 interlaced"
++           YUYV YUYV YUYV ...   N lines
++           The U/V data is subsampled by 2 in horizontal direction only.
++
++   bgr24 = 3 bytes per pixel, in the order Blue Green Red (whoever came up
++           with that idea...)
++   rgb24 = 3 bytes per pixel, in the order Red Green Blue (which is sensible)
++   rgb32 = 4 bytes per pixel, in the order Red Green Blue Alpha, with
++           Alpha really being a filler byte (0)
++   bgr32 = last but not least, 4 bytes per pixel, in the order Blue Green Red
++           Alpha, Alpha again a filler byte (0)
++ */
++
++/* 4:2:0 YUV planar to RGB/BGR     */
++void ccvt_420p_bgr24(int width, int height, const void *src, void *dst);
++void ccvt_420p_rgb24(int width, int height, const void *src, void *dst);
++void ccvt_420p_bgr32(int width, int height, const void *src, void *dst);
++void ccvt_420p_rgb32(int width, int height, const void *src, void *dst);
++
++/* 4:2:2 YUYV interlaced to RGB/BGR */
++void ccvt_yuyv_rgb32(int width, int height, const void *src, void *dst);
++void ccvt_yuyv_rgb24(int width, int height, const void *src, void *dst);
++void ccvt_yuyv_bgr32(int width, int height, const void *src, void *dst);
++
++/* 4:2:2 YUYV interlaced to 4:2:0 YUV planar */
++void ccvt_yuyv_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
++
++/* RGB/BGR to 4:2:0 YUV interlaced */
++
++/* RGB/BGR to 4:2:0 YUV planar     */
++void ccvt_rgb24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
++void ccvt_bgr24_420p(int width, int height, const void *src, void *dsty, void *dstu, void *dstv);
++
++/* RGB/BGR to RGB/BGR */
++void ccvt_bgr24_bgr32(int width, int height, const void *const src, void *const dst);
++void ccvt_bgr24_rgb32(int width, int height, const void *const src, void *const dst);
++void ccvt_bgr32_bgr24(int width, int height, const void *const src, void *const dst);
++void ccvt_bgr32_rgb24(int width, int height, const void *const src, void *const dst);
++void ccvt_rgb24_bgr32(int width, int height, const void *const src, void *const dst);
++void ccvt_rgb24_rgb32(int width, int height, const void *const src, void *const dst);
++void ccvt_rgb32_bgr24(int width, int height, const void *const src, void *const dst);
++void ccvt_rgb32_rgb24(int width, int height, const void *const src, void *const dst);
++
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt_c.c ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt_c.c
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt_c.c	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt_c.c	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,132 @@
++/*  CCVT: ColourConVerT: simple library for converting colourspaces
++    Copyright (C) 2002 Nemosoft Unv.
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++
++    You should have received a copy of the GNU General Public License
++    along with this program; if not, write to the Free Software
++    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++
++    For questions, remarks, patches, etc. for this program, the author can be
++    reached at nemosoft@smcc.demon.nl.
++*/
++
++#include "ccvt.h"
++
++#define PUSH_RGB24	1
++#define PUSH_BGR24	2
++#define PUSH_RGB32	3
++#define PUSH_BGR32	4
++
++
++/* This is a simplistic approach. */
++static void ccvt_420p(int width, int height, const unsigned char *src, unsigned char *dst, int push)
++{
++	int line, col, linewidth;
++	int y, u, v, yy, vr, ug, vg, ub;
++	int r, g, b;
++	const unsigned char *py, *pu, *pv;
++
++	linewidth = width >> 1;
++	py = src;
++	pu = py + (width * height);
++	pv = pu + (width * height) / 4;
++
++	y = *py++;
++	yy = y << 8;
++	u = *pu - 128;
++	ug =   88 * u;
++	ub =  454 * u;
++	v = *pv - 128;
++	vg =  183 * v;
++	vr =  359 * v;
++
++	for (line = 0; line < height; line++) {
++		for (col = 0; col < width; col++) {
++			r = (yy +      vr) >> 8;
++			g = (yy - ug - vg) >> 8;
++			b = (yy + ub     ) >> 8;
++
++			if (r < 0)   r = 0;
++			if (r > 255) r = 255;
++			if (g < 0)   g = 0;
++			if (g > 255) g = 255;
++			if (b < 0)   b = 0;
++			if (b > 255) b = 255;
++
++			switch(push) {
++			case PUSH_RGB24:
++				*dst++ = r;
++				*dst++ = g;
++				*dst++ = b;
++				break;
++
++			case PUSH_BGR24:
++				*dst++ = b;
++				*dst++ = g;
++				*dst++ = r;
++				break;
++
++			case PUSH_RGB32:
++				*dst++ = r;
++				*dst++ = g;
++				*dst++ = b;
++				*dst++ = 0;
++				break;
++
++			case PUSH_BGR32:
++				*dst++ = b;
++				*dst++ = g;
++				*dst++ = r;
++				*dst++ = 0;
++				break;
++			}
++
++			y = *py++;
++			yy = y << 8;
++			if (col & 1) {
++				pu++;
++				pv++;
++
++				u = *pu - 128;
++				ug =   88 * u;
++				ub =  454 * u;
++				v = *pv - 128;
++				vg =  183 * v;
++				vr =  359 * v;
++			}
++		} /* ..for col */
++		if ((line & 1) == 0) { // even line: rewind
++			pu -= linewidth;
++			pv -= linewidth;
++		}
++	} /* ..for line */
++}
++
++void ccvt_420p_rgb24(int width, int height, const void *src, void *dst)
++{
++	ccvt_420p(width, height, (const unsigned char *)src, (unsigned char *)dst, PUSH_RGB24);
++}
++
++void ccvt_420p_bgr24(int width, int height, const void *src, void *dst)
++{
++	ccvt_420p(width, height, (const unsigned char *)src, (unsigned char *)dst, PUSH_BGR24);
++}
++
++void ccvt_420p_rgb32(int width, int height, const void *src, void *dst)
++{
++	ccvt_420p(width, height, (const unsigned char *)src, (unsigned char *)dst, PUSH_RGB32);
++}
++
++void ccvt_420p_bgr32(int width, int height, const void *src, void *dst)
++{
++	ccvt_420p(width, height, (const unsigned char *)src, (unsigned char *)dst, PUSH_BGR32);
++}
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt_i386.S ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt_i386.S
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/ccvt_i386.S	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/ccvt_i386.S	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,1255 @@
++/*
++Colour conversion routines (RGB <-> YUV) in x86 assembly
++ 
++(C) 2000 Nemosoft Unv.    nemosoft@smcc.demon.nl
++   
++This program is free software; you can redistribute it and/or
++modify it under the terms of the GNU General Public License
++as published by the Free Software Foundation; either version 2
++of the License, or (at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software
++Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.   
++
++*/
++
++
++/* The ccvt_* functions always start with width and height, so these
++   parameters are in 8(%ebp) and 12 (%ebp). The other parameters can be
++   2 to 4 pointers, and one of these combinations:
++   *src, *dst
++   *srcy, *srcu, *srv, *dst
++   *src, *dsty, *dstu, *dstv
++ */   
++
++#define __ASSEMBLY__
++#include <linux/linkage.h>
++
++#define Width   8(%ebp)
++#define Height 12(%ebp)
++
++/* 2 parameters, 1 in, 1 out */
++#define Src2 16(%ebp)
++#define Dst2 20(%ebp)
++
++/* 4 parameters, 3 in, 1 out */
++#define SrcY 16(%ebp)
++#define SrcU 20(%ebp)
++#define SrcV 24(%ebp)
++#define Dst4 28(%ebp)
++
++/* 4 parameters, 1 in, 3 out */
++#define Src4 16(%ebp)
++#define DstY 20(%ebp)
++#define DstU 24(%ebp)
++#define DstV 28(%ebp)
++
++/* This buffer space used to be staticly allocted, but this is going to
++   give problems with multiple cams (though I have yet to see it).
++   Therefor, we reserve at least 64 + 8 = 72 bytes on the stack with 
++   `enter'.
++ */
++
++#define PixelBuffer -64(%ebp)
++#define Uptr        -68(%ebp)
++#define Vptr        -72(%ebp)
++
++	.text
++
++/* This function will load the src and destination pointers, including
++   Uptr/Vptr when necessary, and test the width/height parameters.
++   - %esi will be set to Src or SrcY
++   - %edi will be set to Dst or DstY
++   the carry flag will be set if any of these tests fail. 
++   It assumes %ebp has been set.
++ */
++/* 2 parameters, src & dst */
++test_param_2:
++	mov Src2, %esi
++	mov Dst2, %edi
++	
++	cmp $0, %esi		# NULL pointers?
++	je param_fail
++	cmp $0, %edi
++	je param_fail
++
++	jmp test_width_height
++
++/* 3 inputs, 1 output */
++test_param_31:
++	mov Dst4, %edi		# NULL pointers
++	cmp $0, %edi
++	je param_fail
++	
++	mov SrcV, %esi
++	cmp $0, %esi
++	je param_fail
++	mov %esi, Vptr
++
++	mov SrcU, %esi
++	cmp $0, %esi
++	je param_fail
++	mov %esi, Uptr
++	
++	mov SrcY, %esi
++	cmp $0, %esi
++	je param_fail
++	
++	jmp test_width_height
++
++/* 1 input, 3 output */	
++test_param_13:
++	mov Src4, %esi		# NULL pointers
++	cmp $0, %esi
++	je param_fail
++	
++	mov DstV, %edi
++	cmp $0, %edi
++	je param_fail
++	mov %edi, Vptr
++	
++	mov DstU, %edi
++	cmp $0, %edi
++	je param_fail
++	mov %edi, Uptr
++	
++	mov DstY, %edi
++	cmp $0, %edi
++	je param_fail
++	
++	jmp test_width_height
++	
++	nop
++
++test_width_height:
++	cmpl $0, Width
++	jbe param_fail
++	testl $3, Width		# multiple of 4?
++	jnz param_fail		# Nope...
++
++	cmp $0, Height		# check illegal height
++	jbe param_fail
++	testl $1, Height	# Odd no. of lines?
++	jnz param_fail		# Aye
++
++	/* fall through */
++
++/* exit points */
++param_ok:
++	clc			# Success: clear carry
++	ret
++
++param_fail:
++	stc			# Fail: set carry
++	ret
++
++
++
++# This will fill PixelBuffer with 4 grey scale pixels (Y)
++# In: 		%eax = Value (Y3Y2Y1Y0)
++# Out:
++# Modifies:	%ecx (-4)
++# Destroys: 	%edx
++expand_4_y:
++	mov %eax, %edx		# Keep in edx (we need eax)
++	lea PixelBuffer, %edi	
++	
++0:	# This code is executed 4 times
++	movzbl %dl, %eax	# move, zero extending byte-to-long
++	shl $8, %eax		# 8 digit precision
++	
++	stosl			# Expand into PixelBuffer
++	stosl
++	stosl
++	add $4, %edi		# Skip alpha
++
++	shr $8, %edx		# next Y
++
++	dec %ecx
++	test $3, %ecx
++	jnz 0b
++
++	ret			# from expand_4_y
++	
++# This will add the color factors to the (grey) values in PixelBuffer
++# In:		%ebx (U1U0V1V0)
++# Out:
++# Modifies:
++# Destroys:	%edi, %ebx, %eax, %edx
++expand_4_uv:
++	lea PixelBuffer, %edi	# reset pointer
++
++	# V0
++	sub $128, %bl
++	movsbl %bl, %eax
++	mov $359, %edx		# Vr
++	mul %edx
++	add %eax, 0x00(%edi)
++	add %eax, 0x10(%edi)
++	
++	movsbl %bl, %eax
++	mov $183, %edx		# Vg
++	mul %edx
++	sub %eax, 0x04(%edi)
++	sub %eax, 0x14(%edi)
++	
++	# V1
++	sub $128, %bh
++	movsbl %bh, %eax
++	mov $359, %edx		# Vr
++	mul %edx
++	add %eax, 0x20(%edi)
++	add %eax, 0x30(%edi)
++	
++	movsbl %bh, %eax
++	mov $183, %edx		# Vg
++	mul %edx
++	sub %eax, 0x24(%edi)
++	sub %eax, 0x34(%edi)
++	
++	# U0
++	bswap %ebx		# Get U values in lower half
++	sub $128, %bh
++	movsbl %bh, %eax
++	mov $88, %edx		# Ug
++	mul %edx
++	sub %eax, 0x04(%edi)
++	sub %eax, 0x14(%edi)
++
++	movsbl %bh, %eax
++	mov $454, %edx		# Ub
++	mul %edx
++	add %eax, 0x08(%edi)
++	add %eax, 0x18(%edi)
++	
++	# U1
++	sub $128, %bl
++	movsbl %bl, %eax
++	mov $88, %edx		# Ug
++	mul %edx
++	sub %eax, 0x24(%edi)
++	sub %eax, 0x34(%edi)
++	
++	movsbl %bl, %eax
++	mov $454, %edx		# Ub
++	mul %edx
++	add %eax, 0x28(%edi)
++	add %eax, 0x38(%edi)
++	ret			# expand_4_uv
++
++
++/* This function expands 4 420i pixels into PixelBuffer */
++do_four_yuvi:
++	push %edi
++
++	lodsl			# 4 bytes at a time
++	
++	call expand_4_y
++	
++	# now do UV values. on even lines, Y is followed by U values; on 
++	# odd lines V values follow. The U and V values are always pushed
++	# on the stack in this order:
++	# U V
++	
++	# First, calculate offset per line (1.5 * width)
++	mov Width, %ebx	# width
++	shl %ebx		# 2 *
++	add Width, %ebx	# 3 * 
++	shr %ebx		# 1.5 *
++
++	# even or odd lines	
++	testl $1, Height
++	jz 2f
++
++	# odd line; we are at V data, but do U data first
++	neg %ebx		# make ebx offset negative
++	mov (%esi,%ebx),%ax	# U
++	push %ax
++	lodsw			# V
++	push %ax
++	jmp 3f	
++	
++2:	# even line
++	lodsw			# U
++	push %ax
++	sub $2, %ebx
++	mov (%esi,%ebx), %ax	# V
++	push %ax
++
++3:	# Okay, so we now have the U and V values... expand into PixelBuffer
++
++	pop %ebx
++	call expand_4_uv
++
++	pop %edi
++	ret			# from do_four_yuvi
++
++
++# Do four pixels, in planar format
++do_four_yuvp:
++	push %edi
++
++	# The first part is the same as for interlaced (4 bytes Y)
++	lodsl			# 4 bytes at a time
++	call expand_4_y
++	
++	# now gather U and V values... 
++	mov Uptr, %ebx		# Use Uptr/Vptr
++	mov (%ebx), %ax
++	push %ax
++	add $2, %ebx
++	mov %ebx, Uptr
++
++	mov Vptr, %ebx
++	mov (%ebx), %ax
++	push %ax
++	add $2, %ebx
++	mov %ebx, Vptr
++	
++	pop %ebx
++	call expand_4_uv
++	
++	pop %edi
++	ret
++
++
++# Do four pixels, in yuyv interlaced format
++do_four_yuyv:
++	push %edi
++
++	lodsl			# v0y1u0y0
++	mov %eax, %ebx
++	bswap %ebx		# y0u0y1v0
++	mov %bh, %ah		# v0y1y1y0
++	and $0x00ff00ff, %ebx	# __u0__v0
++	push %ax		# y1y0
++
++	lodsl			# v1y3u1y2	# mix register instructions
++	mov %eax, %edx				# so CPU pipeline doesnt stall
++	rol $16, %eax		# u1y2v1y3	
++	mov %dl, %dh		# v1y3y2y2
++	and $0xff00ff00, %eax	# u1__v1__
++	mov $0, %dl		# v1y3y2__
++	or %eax, %ebx		# u1u0v1v0
++	shl $8, %edx		# y3y2____
++	pop %dx			# y3y2y1y0
++	mov %edx, %eax
++	call expand_4_y
++	call expand_4_uv
++	
++	pop %edi
++	ret
++
++limit_pixels:
++	# Limit all values in PixelBuffer
++	push %esi
++	push %edi
++	push %ecx
++	lea PixelBuffer, %esi
++	mov %esi, %edi
++	mov $16, %ecx
++0:	lodsl
++	cmp $0, %eax		# this would have been a perfect spot for CMOVxx instructions...
++	jl 2f			#  except they only work on Pentium Pro processors,
++	cmp $0xff00, %eax	#  and not even all of them
++	jg 3f
++	add $4, %edi		# no use for stosl here
++	loop 0b
++	jmp 9f
++2:	mov $0, %eax
++	stosl
++	loop 0b
++	jmp 9f
++3:	mov $0xff00, %eax
++	stosl
++	loop 0b
++	jmp 9f
++
++9:	pop %ecx
++	pop %edi
++	pop %esi
++	ret			# from limit_pixels
++
++/* Copy RGB values from PixelBuffer into destination buffer, 4 bytes
++   with alpha 
++ */
++
++/* Push 3 pixel (12 bytes), in correct order */
++push_rgb24:
++	push %ecx
++	push %esi
++	lea PixelBuffer, %esi
++	mov $4, %ecx
++0:	lodsl
++	shr $8, %eax
++	mov %al, (%edi)  	# Red
++	lodsl
++	shr $8, %eax
++	mov %al, 1(%edi)	# Green
++	lodsl
++	shr $8, %eax
++	mov %al, 2(%edi)	# Blue
++	add $3, %edi
++	lodsl			# dummy
++	loop 0b
++	pop %esi
++	pop %ecx
++	ret
++
++/* Push 3 pixels (12 bytes), in wrong order */
++push_bgr24:
++	push %ecx
++	push %esi
++	lea PixelBuffer, %esi
++	mov $4, %ecx
++0:	lodsl
++	shr $8, %eax
++	mov %al, 2(%edi)	# Red
++	lodsl
++	shr $8, %eax
++	mov %al, 1(%edi)	# Green
++	lodsl
++	shr $8, %eax
++	mov %al, (%edi)		# Blue
++	add $3, %edi
++	lodsl			# dummy
++	loop 0b
++	pop %esi
++	pop %ecx
++	ret
++
++/* The simplest format: push 4 bytes, RGBa */
++push_rgb32:
++	push %ecx
++	push %esi
++	mov $16, %ecx
++	lea PixelBuffer, %esi
++0:	lodsl			# red
++	shr $8, %eax		# 8 bit precision
++	stosb
++	loop 0b
++	pop %esi
++	pop %ecx
++	ret
++
++
++/* Gosh. Would you believe it. They even made this format... (Qt 2.*) */
++push_bgr32:
++	# copy all 4 values to output buffer
++	push %ecx
++	push %esi
++	mov $4, %ecx
++	lea PixelBuffer, %esi
++0:	lodsl			# red
++	shr $8, %eax		# 8 bit precision
++	mov %al, 2(%edi)
++	lodsl			# green
++	shr $8, %eax
++	mov %al, 1(%edi)
++	lodsl			# blue
++	shr $8, %eax
++	mov %al, (%edi)
++	add $4, %edi
++	lodsl			# dummy
++	loop 0b	
++	pop %esi
++	pop %ecx
++	ret
++
++/*************************************/
++
++/* Functions to go from YUV interlaced formats to RGB */
++
++/* Go from interlaced to RGB, red first */
++
++ENTRY(ccvt_420i_rgb24)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++	
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvi
++	call limit_pixels
++	call push_rgb24
++			
++	cmp $0, %ecx
++	jnz 1b			# end of line?
++	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* Go from interlaced to BGR, blue first */
++
++ENTRY(ccvt_420i_bgr24)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++	
++0:	mov Width, %ecx	# width
++1:	call do_four_yuvi
++	call limit_pixels
++	call push_bgr24
++			
++	cmp $0, %ecx
++	jnz 1b			# end of line?
++	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++/* From interlaced to RGBa */
++
++ENTRY(ccvt_420i_rgb32)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvi
++	call limit_pixels
++	call push_rgb32
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* Guess what? Go from interlaced to BGRa */
++
++ENTRY(ccvt_420i_bgr32)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvi
++	call limit_pixels
++	call push_bgr32
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* From YUYV to RGBa */
++ENTRY(ccvt_yuyv_rgb24)
++       enter $72, $0           # no extra space, no stackframes
++       push %ebx
++       push %esi
++       push %edi
++
++       call test_param_2
++       jc 9f
++
++0:     mov Width, %ecx         # width
++1:     call do_four_yuyv
++       call limit_pixels
++       call push_rgb24
++
++       cmp $0, %ecx            # end of line?
++       jnz 1b
++
++8:     decl Height             # yes ; decrement line counter
++       jnz 0b
++
++9:     pop %edi
++       pop %esi
++       pop %ebx
++       leave
++       ret
++	
++ENTRY(ccvt_yuyv_rgb32)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++	
++0:	mov Width, %ecx		# width
++1:	call do_four_yuyv
++	call limit_pixels
++	call push_rgb32
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* From YUYV to BGRa */
++ENTRY(ccvt_yuyv_bgr32)
++	enter $72, $0		# no extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++	
++	# YUYV -> RGBa RGBa
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuyv
++	call limit_pixels
++	call push_bgr32
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++
++
++/* Planar to RGBa */
++
++ENTRY(ccvt_420p_rgb32)
++	enter $72, $0
++	push %ebx
++	push %esi
++	push %edi
++	
++	call test_param_31
++	jc 9f
++
++	mov Width, %eax		# width
++	mull Height		# * height
++	mov SrcU, %eax		# Copy U/V pointers
++	mov %eax, Uptr
++	mov SrcV, %eax
++	mov %eax, Vptr
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvp
++	call limit_pixels
++	call push_rgb32	
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++	testl $1, Height	# odd/even line
++	jnz 8f
++	
++	mov Width, %eax		# Even: rewind U/V pointers
++	shr %eax
++	sub %eax, Uptr
++	sub %eax, Vptr
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* Okay... eventually, you end up with a very complete set of conversion
++   routines. I just wished things were a bit simpler. */
++
++/* Planar to RGB */
++
++ENTRY(ccvt_420p_rgb24)
++	enter $72, $0
++	push %ebx
++	push %esi
++	push %edi
++	
++	call test_param_31
++	jc 9f
++
++	mov Width, %eax		# width
++	mull Height		# * height
++	mov SrcU, %eax		# Copy U/V pointers
++	mov %eax, Uptr
++	mov SrcV, %eax
++	mov %eax, Vptr
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvp
++	call limit_pixels
++	call push_rgb24	
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++	testl $1, Height	# odd/even line
++	jnz 8f
++	
++	mov Width, %eax		# Even: rewind U/V pointers
++	shr %eax
++	sub %eax, Uptr
++	sub %eax, Vptr
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* Planar to RGB */
++
++ENTRY(ccvt_420p_bgr24)
++	enter $72, $0
++	push %ebx
++	push %esi
++	push %edi
++	
++	call test_param_31
++	jc 9f
++
++	mov Width, %eax		# width
++	mull Height		# * height
++	mov SrcU, %eax		# Copy U/V pointers
++	mov %eax, Uptr
++	mov SrcV, %eax
++	mov %eax, Vptr
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvp
++	call limit_pixels
++	call push_bgr24	
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++	testl $1, Height	# odd/even line
++	jnz 8f
++	
++	mov Width, %eax		# Even: rewind U/V pointers
++	shr %eax
++	sub %eax, Uptr
++	sub %eax, Vptr
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++/* Okay... eventually, you end up with a very complete set of conversion
++   routines. I just wished things were a bit simpler. */
++
++ENTRY(ccvt_420p_bgr32)
++	enter $72, $0
++	push %ebx
++	push %esi
++	push %edi
++	
++	call test_param_31
++	jc 9f
++	
++	mov Width, %eax		# width
++	mull Height		# * height
++	mov SrcU, %eax		# Copy U/V pointers
++	mov %eax, Uptr
++	mov SrcV, %eax
++	mov %eax, Vptr
++
++0:	mov Width, %ecx		# width
++1:	call do_four_yuvp
++	call limit_pixels
++	call push_bgr32
++		
++	cmp $0, %ecx		# end of line?
++	jnz 1b
++
++	testl $1, Height	# odd/even line
++	jnz 8f
++	
++	mov Width, %eax		# Even: rewind U/V pointers
++	shr %eax
++	sub %eax, Uptr
++	sub %eax, Vptr
++
++8:	decl Height		# yes; decrement line counter
++	jnz 0b
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++
++
++/* Go from RGB (red first) to 4:2:0 planar.
++ * Note: this requires decimation of the U/V space by 2 in both directions 
++ * Also, a matrix multiply would be QUITE convenient...
++
++   This is the matrix:
++     (Y )   ( 77  150   29)   (R)
++     (Cb) = (-43  -85  128) * (G)
++     (Cr)   (128 -107  -21)   (B)
++ */
++
++ENTRY(ccvt_rgb24_420p)
++	enter $96, $0		# 24 bytes extra stack, no stackframes
++	push %ebx		#  -76: line width in bytes
++	push %esi		#  -80: height (copy)
++	push %edi		#  -84: width (copy)
++				#  -88: red factor
++				#  -92: green factor
++				#  -96: blue factor
++	call test_param_13
++	jc 9f
++
++	mov Width, %eax
++	shl %eax
++	add Width, %eax		# 3 * width = line increment
++	mov %eax, -76(%ebp)
++
++	mov Height, %eax
++	mov %eax, -80(%ebp)	# copy height into stackframe
++	
++	/*
++	  This is a bit complicated... since U/V decimation is taking 
++	  place both in horizontal and vertical direction, we have to
++	  process 2 lines in parallel. Also, 2 adjacent pixels are
++	  considered. We average the U/V values over these 4 pixels
++	  (of course, we could have just taken the U/V value of the first
++	  pixel and be done with it, but that's not how we do things around
++	  here)
++	 */
++	
++	# 1st pass: Y values. Set factors	
++	movl $77 , -88(%ebp)	# 0.299
++	movl $150, -92(%ebp)	# 0.587
++	movl $29 , -96(%ebp)	# 0.114
++
++0:	mov Width, %ecx		# width
++1:	xor %ebx, %ebx		# 0
++	call rgb_multiply
++	shr $8, %ebx		# divide by 256 (no need for limitor, since 77 + 150 + 29 = 256)
++	mov %bl, %al
++	stosb			# store it into Y buffer
++	
++	dec %ecx		# end of line?
++	jnz 1b
++	decl -80(%ebp)		# end of image?
++	jnz 0b
++
++	# Okay, now the U/V pointers... 
++	# The following code is passed twice, with different factors
++	# Note that the %esi pointer jumps around quite a bit
++
++	# factors for U
++	movl $-43, -88(%ebp)	# -0.1687
++	movl $-85, -92(%ebp)	# -0.3313
++	movl $128, -96(%ebp)	# 0.5
++	mov DstU, %edi		# Set %edi register now
++		
++7:	mov Src4, %esi		# Rewind source pointer
++
++	mov Height, %eax	# height
++	shr %eax		#  / 2
++	mov %eax, -80(%ebp)	#   copy
++
++2:	mov Width, %eax		# width
++	shr %eax		#  / 2
++	mov %eax, -84(%ebp)	#   copy
++
++3:	xor %ebx, %ebx		# 0
++	mov $4, %ecx		# average over 4 pixels
++
++4:	call rgb_multiply
++
++	dec %ecx
++	jz 5f			# done?
++	cmp $2, %ecx		# 3rd pixel.. move %esi to next line, with offset
++	jne 4b
++	sub $6, %esi		# backup to where we started
++	add -76(%ebp), %esi	# add line increment
++	jmp 4b
++
++5:	# okay, 4 pixels done... 
++	sub -76(%ebp), %esi	# Get %esi back to its proper place
++
++	add $0x20000, %ebx	# add 0.5 factor
++	shr $10, %ebx		# Divide by 4 * 256
++	mov %bl, %al
++	stosb			# store it!
++
++	decl -84(%ebp)		# end of line?
++	jnz 3b
++	add -76(%ebp), %esi	# %esi to next line (actually, 2 lines further)
++	decl -80(%ebp)		# end of image?
++	jnz 2b
++
++	# check if 3rd pass has been done
++	cmpl $128, -88(%ebp)
++	je 9f			# Done!
++	# Set factors for V pass
++	movl $128 , -88(%ebp)	# 0.5
++	movl $-107, -92(%ebp)	# -0.4187
++	movl $-21 , -96(%ebp)	# -0.0813
++	mov DstV, %edi		# %edi to V buffer
++	jmp 7b			# "Do it to me one more time..."
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++
++
++ENTRY(ccvt_bgr24_420p)
++	enter $96, $0		# 24 bytes extra stack, no stackframes
++	push %ebx		#   -4: line width in bytes
++	push %esi		#   -8: height (copy)
++	push %edi		#  -12: width (copy)
++				#  -16: red factor
++				#  -20: green factor
++				#  -24: blue factor
++	call test_param_13
++	jc 9f
++
++	/* No surprise, this code looks just like rgb24_420p, but with swapped factors */
++	 
++	mov Width, %eax
++	shl %eax
++	add Width, %eax		# 3 * width = line increment
++	mov %eax, -76(%ebp)
++
++	mov Height, %eax
++	mov %eax, -80(%ebp)	# copy height into stackframe
++	
++	# 1st pass: Y values. Set factors	
++	movl $29 , -88(%ebp)	# 0.114
++	movl $150, -92(%ebp)	# 0.587
++	movl $77 , -96(%ebp)	# 0.299
++
++0:	mov Width, %ecx		# width
++1:	xor %ebx, %ebx		# 0
++	call rgb_multiply
++	shr $8, %ebx		# divide by 256 (no need for limitor, since 77 + 150 + 29 = 256)
++	mov %bl, %al
++	stosb			# store it into Y buffer
++	
++	dec %ecx		# end of line?
++	jnz 1b
++	decl -80(%ebp)		# end of image?
++	jnz 0b
++
++	# Okay, now the U/V pointers... 
++	# The following code is passed twice, with different factors
++	# Note that the %esi pointer jumps around quite a bit
++
++	# factors for U
++	movl $123, -88(%ebp)	#  0.5
++	movl $-85, -92(%ebp)	# -0.3313
++	movl $-43, -96(%ebp)	# -0.1687
++	mov DstU, %edi		# Set %edi register now
++		
++7:	mov Src4, %esi		# Rewind source pointer
++
++	mov Height, %eax	# height
++	shr %eax		#  / 2
++	mov %eax, -80(%ebp)	#   copy
++
++2:	mov Width, %eax		# width
++	shr %eax		#  / 2
++	mov %eax, -84(%ebp)	#   copy
++
++3:	xor %ebx, %ebx		# 0
++	mov $4, %ecx		# average over 4 pixels
++
++4:	call rgb_multiply
++
++	dec %ecx
++	jz 5f			# done?
++	cmp $2, %ecx		# 3rd pixel.. move %esi to next line, with offset
++	jne 4b
++	sub $6, %esi		# backup to where we started
++	add -76(%ebp), %esi	# add line increment
++	jmp 4b
++
++5:	# okay, 4 pixels done... 
++	sub -76(%ebp), %esi	# Get %esi back to its proper place
++
++	add $0x20000, %ebx	# add 0.5 factor
++	shr $10, %ebx		# Divide by 4 * 256
++	mov %bl, %al
++	stosb			# store it!
++
++	decl -84(%ebp)		# end of line?
++	jnz 3b
++	add -76(%ebp), %esi	# %esi to next line (actually, 2 lines further)
++	decl -80(%ebp)		# end of image?
++	jnz 2b
++
++	# check if 3rd pass has been done
++	cmpl $-21, -88(%ebp)
++	je 9f			# Done!
++	# Set factors for V pass
++	movl $-21 , -88(%ebp)	# -0.0813
++	movl $-107, -92(%ebp)	# -0.4187
++	movl $128 , -96(%ebp)	#  0.5
++	mov DstV, %edi		# %edi to V buffer
++	jmp 7b			# "Do it to me one more time..."
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++/* RGB-to-YUV helper functions */
++
++rgb_multiply:
++	# do one RGB vector multiplication; its assumed the RGB factors
++	# are set on the stack. The data is accumulated in ebx.
++	lodsb			# red byte
++	and $0xff, %eax
++	mov -88(%ebp), %edx	# red factor
++	mul %edx
++	add %eax, %ebx
++	lodsb			# green byte
++	and $0xff, %eax
++	mov -92(%ebp), %edx	# green factor
++	mul %edx
++	add %eax, %ebx
++	lodsb			# blue byte
++	and $0xff, %eax
++	mov -96(%ebp), %edx	# blue factor
++	mul %edx
++	add %eax, %ebx		# ebx now contains sum
++	ret
++
++
++
++/**************************************************************************/
++
++
++/* Go from 'interlaced' (YYYY UU/VV) format to planar */
++
++ENTRY(ccvt_420i_420p)
++	enter $76, $0		# 4 bytes extra space, no stackframes
++	push %ebx		# -4: width / 4
++	push %esi
++	push %edi
++
++	call test_param_13
++	jc 9f
++
++	# Okay, this is fairly easy... we first grab the Y values (4 bytes
++	#  at a time), then rewind and do the U values, and repeat for V.
++	#  This leaves us with a nice planar format
++
++	mov Width, %eax
++	shr %eax
++	shr %eax		# width / 4
++	mov %eax, -76(%ebp)	# Store
++
++	# Y
++	mov Height, %edx	# line counter
++0:	mov -76(%ebp), %ecx
++1:	lodsl			# get 4 bytes...
++	stosl			# ...push 4 bytes
++	add $2, %esi		# Skip U or V
++	loop 1b
++	dec %edx
++	jnz 0b
++
++	# U
++	mov Src4, %esi		# rewind source pointer
++	mov DstU, %edi
++	add $4, %esi		# set to U 
++	mov Height, %edx
++	shr %edx		# height / 2
++	mov Width, %ebx
++	shl %ebx
++	add Width, %ebx
++	shr %ebx		# Width * 1.5 (line offset)
++
++2:	mov -76(%ebp), %ecx	# width / 4
++3:	lodsw			# 2 bytes at a time
++	stosw
++	add $4, %esi		# skip Y
++	loop 3b
++	add %ebx, %esi		# Skip line (U is on even lines)
++	dec %edx
++	jnz 2b
++	
++	# V
++	mov Src4, %esi		# rewind, set to V in first odd line
++	add $4, %esi
++	add %ebx, %esi		# register re-use; no compiler can beat that :)
++	mov DstV, %edi		# V ptr
++	mov Height, %edx
++	shr %edx		# height / 2
++	
++4:	mov -76(%ebp), %ecx	# Get width/4
++5:	lodsw
++	stosw
++	add $4, %esi		# Skip Y
++	loop 5b
++	add %ebx, %esi		# Skip line (V is on odd lines)
++	dec %edx
++	jnz 4b
++	
++	/* That's it! */
++	
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
++
++
++/* Go from 4:2:0 interlaced to 'normal' YUYV */
++
++ENTRY(ccvt_420i_yuyv)
++	enter $80, $0		# 8 bytes extra space, no stackframes
++	push %ebx
++	push %esi
++	push %edi
++
++	call test_param_2
++	jc 9f
++	
++	mov Width, %ecx		# -4: width / 4 = no. loops per line
++	shr %ecx
++	shr %ecx
++	mov %ecx, -76(%ebp)
++
++	mov Width, %ebx		# -8: width * 1.5 = line offset
++	shl %ebx
++	add Width, %ebx
++	shr %ebx
++	mov %ebx, -80(%ebp)
++	
++	# Okay, this requires a bit of byte shuffling... we go from
++	#  YYYY UU
++	#  YYYY VV
++	# to
++	#  YUYV YUYV
++	#  YUYV YUYV
++	# which indeed takes up more space
++
++	# 
++	
++0:	mov -76(%ebp), %ecx
++
++1:	lodsl			# 4 Y in eax
++	testl $1, Height	# even or odd line?
++	jnz 2f
++	
++	# Even
++	mov -80(%ebp), %ebx
++	mov (%ebx, %esi), %dx	# 16 bits V 
++	shl $16, %edx		# store in high word
++	mov (%esi), %dx		# 16 bits U 
++	add $2, %esi
++	jmp 3f
++	
++2:	# Odd
++	mov -80(%ebp), %ebx
++	neg %ebx		# negative offset
++	mov (%esi), %dx		# 16 bits V
++	shl $16, %edx		# store in high word
++	mov (%ebx, %esi), %dx	# 16 bits U
++	add $2, %esi
++
++3:	# eax = Y3Y2Y1Y0, edx = V1V0U1U0, ebx is free
++	push %eax
++
++	movzbl %al, %ebx	# ______y0
++	and $0xFF00, %eax	# ____y1__
++	shl $8, %eax		# __y1____
++	or %ebx, %eax		# __y1__y0
++	mov %edx, %ebx		# v1v0u1u0
++	shl $8, %ebx		# v0u1u0__
++	and $0xff00ff00, %ebx	# v0__u0__
++	or %ebx, %eax		# v0y1u0y0
++	stosl	
++
++	pop %eax		# y3y2y1y0
++	# Second half
++	shr $8, %eax		# __y3y2y1
++	shr $8, %ax		# __y3__y2
++	and $0xff00ff00, %edx	# v1__u1__
++	or %edx, %eax		# v1y3u1y2
++	stosl
++	
++	loop 1b
++
++
++	decl Height		# height--
++	jnz 0b
++	# Done
++
++9:	pop %edi
++	pop %esi
++	pop %ebx
++	leave
++	ret
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/jpegtorgb.h ARToolKit/lib/SRC/VideoLinuxV4L2/jpegtorgb.h
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/jpegtorgb.h	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/jpegtorgb.h	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,272 @@
++/* JPEG To RGB interface --Raphael Grasset - 04/07/16 - 2004 Hitlab NZ. All Rights reserved--
++
++This file define simple routine functions for  converting a JPEG image to RGB format.
++It use is ONLY for EyeToy Camera.
++
++WARNING : It use a static image area : at each call of conversion, the new
++image is copying on the same memory area (limited dynamic allocation mamagement).
++So be careful when you manipulating the pointer on the image !!
++
++USAGE :
++Based on libjpeg (providing hardware decompression), you need just add few things on your code:
++
++#include "jpegtorgb.h" //this file
++
++int xsiwe=640;//video image format
++int ysize=480;//video image format
++....
++JPEGToRGBInit(xsize,ysize); //init function with image size in parameters
++....
++
++ARUint8* decompressed_image=JPEGToRGB(video_image,xsize,ysize); //converting function (converted image return)
++
++don't be care with ARUint8, equivalent to an unsigned char format.
++
++*/
++
++#include "jpeglib.h"
++#include "jerror.h"
++#include <setjmp.h>
++
++
++/*---------------- Direct Input Functions for libjpeg  --------------*/
++
++/* we overload the interface for open a jpeg file : the libjpeg
++file is limited for only FILE* input. Since we have a JPEG image
++in memory we need a new interface for libjpeg. For these we overload
++differents functions.
++I have modified the code for jpeg_stdio_src, and providing
++new functions name EyeToy_XXX (XXX template
++
++Need to be optimized, cleaned.
++*/
++
++#define JFREAD(file,buf,sizeofbuf)  \
++  ((size_t) fread((void *) (buf), (size_t) 1, (size_t) (sizeofbuf), (file)))
++
++/* Expanded data source object for stdio input */
++
++typedef struct {
++  struct jpeg_source_mgr pub;	/* public fields */
++
++  unsigned char* image;
++  int image_size;
++  JOCTET * buffer;		/* start of buffer */
++  boolean start_of_file;	/* have we gotten any data yet? */
++} my_source_mgr;
++
++typedef my_source_mgr * my_src_ptr;
++
++#define INPUT_BUF_SIZE  4096	/* choose an efficiently fread'able size */
++
++/*
++ * Initialize source --- called by jpeg_read_header
++ * before any data is actually read.
++ */
++
++METHODDEF(void)
++EyeToy_init_source (j_decompress_ptr cinfo)
++{
++  my_src_ptr src = (my_src_ptr) cinfo->src;
++
++  /* We reset the empty-input-file flag for each image,
++   * but we don't clear the input buffer.
++   * This is correct behavior for reading a series of images from one source.
++   */
++  src->start_of_file = TRUE;
++}
++
++/*
++ * Fill the input buffer --- called whenever buffer is emptied.
++ *
++ * In typical applications, this should read fresh data into the buffer
++ * (ignoring the current state of next_input_byte & bytes_in_buffer),
++ * reset the pointer & count to the start of the buffer, and return TRUE
++ * indicating that the buffer has been reloaded.  It is not necessary to
++ * fill the buffer entirely, only to obtain at least one more byte.
++ *
++ * There is no such thing as an EOF return.  If the end of the file has been
++ * reached, the routine has a choice of ERREXIT() or inserting fake data into
++ * the buffer.  In most cases, generating a warning message and inserting a
++ * fake EOI marker is the best course of action --- this will allow the
++ * decompressor to output however much of the image is there.  However,
++ * the resulting error message is misleading if the real problem is an empty
++ * input file, so we handle that case specially.
++ *
++ * In applications that need to be able to suspend compression due to input
++ * not being available yet, a FALSE return indicates that no more data can be
++ * obtained right now, but more may be forthcoming later.  In this situation,
++ * the decompressor will return to its caller (with an indication of the
++ * number of scanlines it has read, if any).  The application should resume
++ * decompression after it has loaded more data into the input buffer.  Note
++ * that there are substantial restrictions on the use of suspension --- see
++ * the documentation.
++ *
++ * When suspending, the decompressor will back up to a convenient restart point
++ * (typically the start of the current MCU). next_input_byte & bytes_in_buffer
++ * indicate where the restart point will be if the current call returns FALSE.
++ * Data beyond this point must be rescanned after resumption, so move it to
++ * the front of the buffer rather than discarding it.
++ */
++
++METHODDEF(boolean)
++EyeToy_fill_input_buffer (j_decompress_ptr cinfo)
++{
++  my_src_ptr src = (my_src_ptr) cinfo->src;
++
++  src->pub.next_input_byte = src->image;
++  src->pub.bytes_in_buffer = src->image_size;
++  
++  src->start_of_file = FALSE;
++
++  return TRUE;
++}
++
++/*
++ * Skip data --- used to skip over a potentially large amount of
++ * uninteresting data (such as an APPn marker).
++ *
++ * Writers of suspendable-input applications must note that skip_input_data
++ * is not granted the right to give a suspension return.  If the skip extends
++ * beyond the data currently in the buffer, the buffer can be marked empty so
++ * that the next read will cause a fill_input_buffer call that can suspend.
++ * Arranging for additional bytes to be discarded before reloading the input
++ * buffer is the application writer's problem.
++ */
++
++METHODDEF(void)
++EyeToy_skip_input_data (j_decompress_ptr cinfo, long num_bytes)
++{
++  my_src_ptr src = (my_src_ptr) cinfo->src;
++
++  /* Just a dumb implementation for now.  Could use fseek() except
++   * it doesn't work on pipes.  Not clear that being smart is worth
++   * any trouble anyway --- large skips are infrequent.
++   */
++  if (num_bytes > 0) {
++    while (num_bytes > (long) src->pub.bytes_in_buffer) {
++      num_bytes -= (long) src->pub.bytes_in_buffer;
++      (void) EyeToy_fill_input_buffer(cinfo);
++      /* note we assume that fill_input_buffer will never return FALSE,
++       * so suspension need not be handled.
++       */
++    }
++    src->pub.next_input_byte += (size_t) num_bytes;
++    src->pub.bytes_in_buffer -= (size_t) num_bytes;
++  }
++}
++
++/*
++ * An additional method that can be provided by data source modules is the
++ * resync_to_restart method for error recovery in the presence of RST markers.
++ * For the moment, this source module just uses the default resync method
++ * provided by the JPEG library.  That method assumes that no backtracking
++ * is possible.
++ */
++
++/*
++ * Terminate source --- called by jpeg_finish_decompress
++ * after all data has been read.  Often a no-op.
++ *
++ * NB: *not* called by jpeg_abort or jpeg_destroy; surrounding
++ * application must deal with any cleanup that should happen even
++ * for error exit.
++ */
++
++METHODDEF(void)
++EyeToy_term_source (j_decompress_ptr cinfo)
++{
++  /* no work necessary here */
++}
++
++
++/*
++The new jpeg access function : directly read the memory
++buffer instead of a FILE* input. Since all the image
++is in memory we put all the buffer in one pass.
++*/
++
++GLOBAL(void)
++EyeToy_jpeg_stdio_src(j_decompress_ptr cinfo,unsigned char *image,int count)
++{
++  my_src_ptr src;
++
++  /* The source object and input buffer are made permanent so that a series
++   * of JPEG images can be read from the same file by calling jpeg_stdio_src
++   * only before the first one.  (If we discarded the buffer at the end of
++   * one image, we'd likely lose the start of the next one.)
++   * This makes it unsafe to use this manager and a different source
++   * manager serially with the same JPEG object.  Caveat programmer.
++   */
++  if (cinfo->src == NULL) {	/* first time for this JPEG object? */
++    cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr) cinfo, JPOOL_PERMANENT,
++    sizeof(my_source_mgr));
++    src = (my_src_ptr) cinfo->src;
++    src->buffer = (JOCTET *)
++      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT, INPUT_BUF_SIZE * sizeof(JOCTET));
++  }
++
++  src = (my_src_ptr) cinfo->src;
++  src->pub.init_source = EyeToy_init_source;
++  src->pub.fill_input_buffer = EyeToy_fill_input_buffer;
++  src->pub.skip_input_data = EyeToy_skip_input_data;
++  src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method */
++  src->pub.term_source = EyeToy_term_source;
++  src->image=image;
++  src->image_size=count;
++  src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
++  src->pub.next_input_byte = NULL; /* until buffer loaded */
++}
++
++static ARUint8* TransfertBufferImage;
++
++/*---------------- Main Functions --------------*/
++
++void JPEGToRGBInit(int xsize,int ysize)
++{
++  TransfertBufferImage = malloc(xsize*ysize*3);  
++}
++ 
++ 
++ARUint8* JPEGToRGB(ARUint8* image, int xsize,int ysize)
++{
++
++  int image_height=xsize;	/* Number of rows in image */
++  int image_width=ysize;		/* Number of columns in image */
++
++  struct jpeg_error_mgr jerr;
++  struct jpeg_decompress_struct cinfo;
++
++  JSAMPROW row_pointer[1];	/* pointer to JSAMPLE row[s] */
++  int row_stride;		/* physical row width in output buffer */
++  int crows=0;
++
++  cinfo.err = jpeg_std_error(&jerr);
++
++  jpeg_create_decompress(&cinfo);
++
++   ssize_t count;
++   count=(image[0]+image[1]*65536)/8;
++
++   EyeToy_jpeg_stdio_src(&cinfo,image+2,count);
++
++  (void) jpeg_read_header(&cinfo, TRUE);
++
++  (void) jpeg_start_decompress(&cinfo);
++
++  row_stride = cinfo.output_width * cinfo.output_components;
++  /* Make a one-row-high sample array that will go away when done with image */
++  
++  while (cinfo.output_scanline < cinfo.output_height) 
++  {
++    row_pointer[0] = & TransfertBufferImage[crows * row_stride];
++    (void) jpeg_read_scanlines(&cinfo, row_pointer, 1);    
++    crows++;
++  }
++
++  (void) jpeg_finish_decompress(&cinfo);
++
++  jpeg_destroy_decompress(&cinfo);
++
++  return TransfertBufferImage;
++}
+diff -urN ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/video.c ARToolKit/lib/SRC/VideoLinuxV4L2/video.c
+--- ARToolKit-2.72.1.original/lib/SRC/VideoLinuxV4L2/video.c	1970-01-01 09:00:00.000000000 +0900
++++ ARToolKit/lib/SRC/VideoLinuxV4L2/video.c	2010-10-03 14:06:30.000000000 +0900
+@@ -0,0 +1,739 @@
++/* 
++ *   Video capture subrutine for Linux/Video4Linux2 devices 
++ *   Based upon the V4L 1 artoolkit code and v4l2 spec example 
++ *   at http://v4l2spec.bytesex.org/spec/a13010.htm
++ *   Simon Goodall <sg@ecs.soton.ac.uk>
++ */
++#include <sys/ioctl.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/mman.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <errno.h>
++#include <linux/types.h>
++#include <linux/videodev2.h>
++#include <AR/video.h>
++#include "ccvt.h"
++
++#define MAXCHANNEL   10
++
++static AR2VideoParamT   *gVid = NULL;
++
++static void printPalette(int p) {
++  switch(p) {
++//YUV formats
++    case (V4L2_PIX_FMT_GREY): printf("  Pix Fmt: Grey\n"); break;
++    case (V4L2_PIX_FMT_YUYV): printf("  Pix Fmt: YUYV\n"); break;
++    case (V4L2_PIX_FMT_UYVY): printf("  Pix Fmt: UYVY\n"); break;
++    case (V4L2_PIX_FMT_Y41P): printf("  Pix Fmt: Y41P\n"); break;
++    case (V4L2_PIX_FMT_YVU420): printf("  Pix Fmt: YVU420\n"); break;
++    case (V4L2_PIX_FMT_YVU410): printf("  Pix Fmt: YVU410\n"); break;
++    case (V4L2_PIX_FMT_YUV422P): printf("  Pix Fmt: YUV422P\n"); break;
++    case (V4L2_PIX_FMT_YUV411P): printf("  Pix Fmt: YUV411P\n"); break;
++    case (V4L2_PIX_FMT_NV12): printf("  Pix Fmt: NV12\n"); break;
++    case (V4L2_PIX_FMT_NV21): printf("  Pix Fmt: NV21\n"); break;
++// RGB formats 
++    case (V4L2_PIX_FMT_RGB332): printf("  Pix Fmt: RGB332\n"); break;
++    case (V4L2_PIX_FMT_RGB555): printf("  Pix Fmt: RGB555\n"); break;
++    case (V4L2_PIX_FMT_RGB565): printf("  Pix Fmt: RGB565\n"); break;
++    case (V4L2_PIX_FMT_RGB555X): printf("  Pix Fmt: RGB555X\n"); break;
++    case (V4L2_PIX_FMT_RGB565X): printf("  Pix Fmt: RGB565X\n"); break;
++    case (V4L2_PIX_FMT_BGR24): printf("  Pix Fmt: BGR24\n"); break;
++    case (V4L2_PIX_FMT_RGB24): printf("  Pix Fmt: RGB24\n"); break;
++    case (V4L2_PIX_FMT_BGR32): printf("  Pix Fmt: BGR32\n"); break;
++    case (V4L2_PIX_FMT_RGB32): printf("  Pix Fmt: RGB32\n"); break;
++  };
++
++}
++
++static int getControl(int fd, int type, int *value) {
++  struct v4l2_queryctrl queryctrl;
++  struct v4l2_control control;
++
++  memset (&queryctrl, 0, sizeof (queryctrl));
++  // TODO: Manke sure this is a correct value
++  queryctrl.id = type;
++
++  if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
++    if (errno != EINVAL) {
++      fprintf(stderr, "Error calling VIDIOC_QUERYCTRL\n");
++      return 1;
++     } else {
++       printf ("Control %d is not supported\n", type);
++       return 1;
++     }
++   } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
++     printf ("Control %s is not supported\n", queryctrl.name);
++     return 1;
++   } else {
++     memset (&control, 0, sizeof (control));
++     control.id = type;
++
++     if (-1 == ioctl (fd, VIDIOC_G_CTRL, &control)) {
++       fprintf(stderr, "Error getting control %s value\n", queryctrl.name);
++       return 1;
++     }
++     *value = control.value;
++  }
++  return 0;
++}
++
++
++static int setControl(int fd, int type, int value) {
++  struct v4l2_queryctrl queryctrl;
++  struct v4l2_control control;
++
++  memset (&queryctrl, 0, sizeof (queryctrl));
++  // TODO: Manke sure this is a correct value
++  queryctrl.id = type;
++
++  if (-1 == ioctl (fd, VIDIOC_QUERYCTRL, &queryctrl)) {
++    if (errno != EINVAL) {
++      fprintf(stderr, "Error calling VIDIOC_QUERYCTRL\n");
++      return 1;
++     } else {
++       printf ("Control %d is not supported\n", type);
++       return 1;
++     }
++   } else if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED) {
++     printf ("Control %s is not supported\n", queryctrl.name);
++     return 1;
++   } else {
++     memset (&control, 0, sizeof (control));
++     control.id = type;
++     // TODO check min/max range
++     // If value is -1, then we use the default value
++     control.value = (value == -1) ? (queryctrl.default_value) : (value);
++
++     if (-1 == ioctl (fd, VIDIOC_S_CTRL, &control)) {
++       fprintf(stderr, "Error setting control %s to %d\n", queryctrl.name, value);
++       return 1;
++     }
++  }
++  return 0;
++}
++
++int arVideoDispOption( void )
++{
++    return  ar2VideoDispOption();
++}
++
++int arVideoOpen( char *config )
++{
++    if( gVid != NULL ) {
++        printf("Device has been opened!!\n");
++        return -1;
++    }
++    gVid = ar2VideoOpen( config );
++    if( gVid == NULL ) return -1;
++
++    return 0;
++}
++
++int arVideoClose( void )
++{
++    int result;
++	
++    if( gVid == NULL ) return -1;
++
++	result = ar2VideoClose(gVid);
++	gVid = NULL;
++    return (result);
++}
++
++int arVideoInqSize( int *x, int *y )
++{
++    if( gVid == NULL ) return -1;
++
++    return ar2VideoInqSize( gVid, x, y );
++}
++
++ARUint8 *arVideoGetImage( void )
++{
++    if( gVid == NULL ) return NULL;
++
++    return ar2VideoGetImage( gVid );
++}
++
++int arVideoCapStart( void )
++{
++    if( gVid == NULL ) return -1;
++
++    return ar2VideoCapStart( gVid );
++}
++
++int arVideoCapStop( void )
++{
++    if( gVid == NULL ) return -1;
++
++    return ar2VideoCapStop( gVid );
++}
++
++int arVideoCapNext( void )
++{
++    if( gVid == NULL ) return -1;
++
++    return ar2VideoCapNext( gVid );
++}
++
++/*-------------------------------------------*/
++
++int ar2VideoDispOption( void )
++{
++    printf("ARVideo may be configured using one or more of the following options,\n");
++    printf("separated by a space:\n\n");
++    printf("DEVICE CONTROLS:\n");
++    printf(" -dev=filepath\n");
++    printf("    specifies device file.\n");
++    printf(" -channel=N\n");
++    printf("    specifies source channel.\n");
++    printf(" -width=N\n");
++    printf("    specifies expected width of image.\n");
++    printf(" -height=N\n");
++    printf("    specifies expected height of image.\n");
++    printf(" -palette=[RGB|YUV420P]\n");
++    printf("    specifies the camera palette (WARNING:all are not supported on each camera !!).\n");
++    printf("IMAGE CONTROLS (WARNING: every options are not supported by all camera !!):\n");
++    printf(" -brightness=N\n");
++    printf("    specifies brightness. (0.0 <-> 1.0)\n");
++    printf(" -contrast=N\n");
++    printf("    specifies contrast. (0.0 <-> 1.0)\n");
++    printf(" -saturation=N\n");
++    printf("    specifies saturation (color). (0.0 <-> 1.0) (for color camera only)\n");    
++    printf(" -hue=N\n");
++    printf("    specifies hue. (0.0 <-> 1.0) (for color camera only)\n");    
++    printf("OPTION CONTROLS:\n");
++    printf(" -mode=[PAL|NTSC|SECAM]\n");
++    printf("    specifies TV signal mode (for tv/capture card).\n");
++    printf("\n");
++
++    return 0;
++}
++
++AR2VideoParamT *ar2VideoOpen( char *config_in )
++{
++
++// Warning, this function leaks badly when an error occurs.
++    AR2VideoParamT            *vid;
++    struct v4l2_capability   vd;
++    struct v4l2_format fmt;
++    struct v4l2_input  ipt;
++    struct v4l2_requestbuffers req;
++
++    char                      *config, *a, line[256];
++    int value;
++
++    /* If no config string is supplied, we should use the environment variable, otherwise set a sane default */
++    if (!config_in || !(config_in[0])) {
++        /* None suppplied, lets see if the user supplied one from the shell */
++        char *envconf = getenv ("ARTOOLKIT_CONFIG");
++        if (envconf && envconf[0]) {
++            config = envconf;
++            printf ("Using config string from environment [%s].\n", envconf);
++        } else {
++            config = NULL;
++            printf ("No video config string supplied, using defaults.\n");
++        }
++    } else {
++        config = config_in;
++        printf ("Using supplied video config string [%s].\n", config_in);
++    }
++
++    arMalloc( vid, AR2VideoParamT, 1 );
++    strcpy( vid->dev, DEFAULT_VIDEO_DEVICE );
++    vid->width      = DEFAULT_VIDEO_WIDTH;
++    vid->height     = DEFAULT_VIDEO_HEIGHT;
++    vid->palette = V4L2_PIX_FMT_YUYV;     /* palette format */
++    vid->contrast   = -1;
++    vid->brightness = -1;
++    vid->saturation = -1;
++    vid->hue        = -1;
++    vid->gamma  = -1;
++    vid->exposure  = -1;
++    vid->gain  = -1;
++    vid->mode       = V4L2_STD_NTSC;
++    //vid->debug      = 0;
++    vid->debug      = 1;
++    vid->channel = 0;
++    vid->videoBuffer=NULL;
++
++    a = config;
++    if( a != NULL) {
++        for(;;) {
++            while( *a == ' ' || *a == '\t' ) a++;
++            if( *a == '\0' ) break;
++            if( strncmp( a, "-dev=", 5 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[5], "%s", vid->dev ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-channel=", 9 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[9], "%d", &vid->channel ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-width=", 7 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[7], "%d", &vid->width ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-height=", 8 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[8], "%d", &vid->height ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-palette=", 9 ) == 0 ) {
++                if( strncmp( &a[9], "GREY", 4) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_GREY;
++                } else if( strncmp( &a[9], "HI240", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_HI240;
++                } else if( strncmp( &a[9], "RGB565", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_RGB565;
++                } else if( strncmp( &a[9], "RGB555", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_RGB555;
++                } else if( strncmp( &a[9], "BGR24", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_BGR24;
++                } else if( strncmp( &a[9], "BGR32", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_BGR32;
++                } else if( strncmp( &a[9], "YUYV", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_YUYV;
++                } else if( strncmp( &a[9], "UYVY", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_UYVY;
++                } else if( strncmp( &a[9], "Y41P", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_Y41P;
++                } else if( strncmp( &a[9], "YUV422P", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_YUV422P;
++                } else if( strncmp( &a[9], "YUV411P", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_YUV411P;
++                } else if( strncmp( &a[9], "YVU420", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_YVU420;
++                } else if( strncmp( &a[9], "YVU410", 3) == 0 ) {
++                  vid->palette = V4L2_PIX_FMT_YVU410;
++		}
++            }
++            else if( strncmp( a, "-contrast=", 10 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[10], "%d", &vid->contrast ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-brightness=", 12 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[12], "%d", &vid->brightness ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-saturation=", 12 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[12], "%d", &vid->saturation ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }	    
++            else if( strncmp( a, "-hue=", 5 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[5], "%d", &vid->hue ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }	
++	    else if( strncmp( a, "-gamma=", 7 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[7], "%d", &vid->gamma ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-exposure=", 10 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[10], "%d", &vid->exposure ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++             else if( strncmp( a, "-gain=", 6 ) == 0 ) {
++                sscanf( a, "%s", line );
++                if( sscanf( &line[6], "%d", &vid->gain ) == 0 ) {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-mode=", 6 ) == 0 ) {
++                if( strncmp( &a[6], "PAL", 3 ) == 0 )        vid->mode = V4L2_STD_PAL;
++                else if( strncmp( &a[6], "NTSC", 4 ) == 0 )  vid->mode = V4L2_STD_NTSC;
++                else if( strncmp( &a[6], "SECAM", 5 ) == 0 ) vid->mode = V4L2_STD_SECAM;
++                else {
++                    ar2VideoDispOption();
++                    free( vid );
++                    return 0;
++                }
++            }
++            else if( strncmp( a, "-debug", 6 ) == 0 ) {
++                vid->debug = 1;
++            }
++            else {
++                ar2VideoDispOption();
++                free( vid );
++                return 0;
++            }
++
++            while( *a != ' ' && *a != '\t' && *a != '\0') a++;
++        }
++    }
++
++    vid->fd = open(vid->dev, O_RDWR);// O_RDONLY ?
++    if(vid->fd < 0){
++        printf("video device (%s) open failed\n",vid->dev); 
++        free( vid );
++        return 0;
++    }
++
++    if(ioctl(vid->fd,VIDIOC_QUERYCAP,&vd) < 0){
++        printf("ioctl failed\n");
++        free( vid );
++        return 0;
++    }
++
++    if (!(vd.capabilities & V4L2_CAP_STREAMING)) {
++      fprintf (stderr, "Device does not support streaming i/o\n");
++    }
++
++    if(vid->debug ) {
++        printf("=== debug info ===\n");
++        printf("  vd.driver        =   %s\n",vd.driver);
++        printf("  vd.card          =   %s\n",vd.card);
++        printf("  vd.bus_info      =   %s\n",vd.bus_info);
++        printf("  vd.version       =   %d\n",vd.version);
++        printf("  vd.capabilities  =   %d\n",vd.capabilities);
++    }
++
++    memset(&fmt, 0, sizeof(fmt));
++
++    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++#if 0
++    fmt.fmt.pix.width       = vid->width; 
++    fmt.fmt.pix.height      = vid->height;
++    fmt.fmt.pix.pixelformat = vid->palette;
++    fmt.fmt.pix.field       = V4L2_FIELD_NONE;
++#else
++    fmt.fmt.pix.width       = 640; 
++    fmt.fmt.pix.height      = 480;
++    fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
++    fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
++#endif
++
++    if (ioctl (vid->fd, VIDIOC_S_FMT, &fmt) < 0) {
++      close(vid->fd);
++      free( vid );
++      printf("ar2VideoOpen: Error setting video format (%d)\n", errno);
++      return 0;
++    }
++
++    // Get actual camera settings
++    vid->palette = fmt.fmt.pix.pixelformat;
++    vid->width = fmt.fmt.pix.width;
++    vid->height = fmt.fmt.pix.height;
++
++    if (vid->debug) {
++      printf("  Width: %d\n", fmt.fmt.pix.width);
++      printf("  Height: %d\n", fmt.fmt.pix.height);
++      printPalette(fmt.fmt.pix.pixelformat);
++    }
++  
++    memset(&ipt, 0, sizeof(ipt));
++
++    ipt.index = vid->channel;
++    ipt.std = vid->mode;
++
++    if(ioctl(vid->fd,VIDIOC_ENUMINPUT,&ipt) < 0) {	
++      printf("arVideoOpen: Error querying input device type\n");
++      close(vid->fd);
++      free( vid );
++      return 0;
++    }
++
++    if (vid->debug) {
++      if (ipt.type == V4L2_INPUT_TYPE_TUNER) {
++        printf("  Type: Tuner\n");
++      } 
++      if (ipt.type == V4L2_INPUT_TYPE_CAMERA) {
++        printf("  Type: Camera\n");
++      }
++    }
++   
++    // Set channel
++    if (ioctl(vid->fd, VIDIOC_S_INPUT, &ipt)) {
++      printf("arVideoOpen: Error setting video input\n");
++      close(vid->fd);
++      free( vid );
++      return 0;
++    } 
++
++
++    // Attempt to set some camera controls
++    setControl(vid->fd, V4L2_CID_BRIGHTNESS, vid->brightness);
++    setControl(vid->fd, V4L2_CID_CONTRAST, vid->contrast);
++    setControl(vid->fd, V4L2_CID_SATURATION, vid->saturation);
++    setControl(vid->fd, V4L2_CID_HUE, vid->hue);
++    setControl(vid->fd, V4L2_CID_GAMMA, vid->gamma);
++    setControl(vid->fd, V4L2_CID_EXPOSURE, vid->exposure);
++    setControl(vid->fd, V4L2_CID_GAIN, vid->gain);
++
++    // Print out current control values
++    if(vid->debug ) {
++      if (!getControl(vid->fd, V4L2_CID_BRIGHTNESS, &value)) {
++        printf("Brightness: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_CONTRAST, &value)) {
++        printf("Contrast: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_SATURATION, &value)) {
++        printf("Saturation: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_HUE, &value)) {
++        printf("Hue: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_GAMMA, &value)) {
++        printf("Gamma: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_EXPOSURE, &value)) {
++        printf("Exposure: %d\n", value);
++      }
++      if (!getControl(vid->fd, V4L2_CID_GAIN, &value)) {
++        printf("Gain: %d\n", value);
++      }
++    }
++
++//    if (vid->palette==V4L2_PIX_FMT_YUYV)
++  arMalloc( vid->videoBuffer, ARUint8, vid->width*vid->height*3 );
++
++  // Setup memory mapping
++  memset(&req, 0, sizeof(req));
++  req.count = 2;
++  req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++  req.memory = V4L2_MEMORY_MMAP;
++
++  if (ioctl(vid->fd, VIDIOC_REQBUFS, &req)) {
++    printf("Error calling VIDIOC_REQBUFS\n");
++      close(vid->fd);
++      if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
++      free( vid );
++    return 0;
++  }
++
++  if (req.count < 2) {
++    printf("this device can not be supported by libARvideo.\n");
++    printf("(req.count < 2)\n");
++      close(vid->fd);
++      if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
++      free( vid );
++
++    return 0;
++  }
++   
++  vid->buffers = (struct buffer*)calloc(req.count , sizeof(*vid->buffers));
++
++  if (vid->buffers == NULL ) {
++    printf("ar2VideoOpen: Error allocating buffer memory\n");
++    close(vid->fd);
++    if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
++    free( vid );
++    return 0;
++  }
++
++  for (vid->n_buffers = 0; vid->n_buffers < req.count; ++vid->n_buffers) {
++    struct v4l2_buffer buf;
++    memset(&buf, 0, sizeof(buf));
++    buf.type        = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++    buf.memory      = V4L2_MEMORY_MMAP;
++    buf.index       = vid->n_buffers;
++
++    if (ioctl (vid->fd, VIDIOC_QUERYBUF, &buf)) {
++      printf ("error VIDIOC_QUERYBUF\n");
++      close(vid->fd);
++      if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
++      free( vid );
++      return 0;
++    }
++
++    vid->buffers[vid->n_buffers].length = buf.length;
++    vid->buffers[vid->n_buffers].start =
++      mmap (NULL /* start anywhere */,
++            buf.length,
++            PROT_READ | PROT_WRITE /* required */,
++            MAP_SHARED /* recommended */,
++            vid->fd, buf.m.offset);
++
++    if (MAP_FAILED == vid->buffers[vid->n_buffers].start) {
++      printf("Error mmap\n");
++      close(vid->fd);
++      if(vid->videoBuffer!=NULL) free(vid->videoBuffer);
++      free( vid );
++      return 0;
++    }
++  }
++
++  vid->video_cont_num = -1;
++
++  return vid;
++}
++
++int ar2VideoClose( AR2VideoParamT *vid )
++{
++    if(vid->video_cont_num >= 0){
++        ar2VideoCapStop( vid );
++    }
++    close(vid->fd);
++    if(vid->videoBuffer!=NULL)
++        free(vid->videoBuffer);
++    free( vid );
++
++    return 0;
++} 
++
++
++int ar2VideoCapStart( AR2VideoParamT *vid )
++{
++  enum v4l2_buf_type type;
++  struct v4l2_buffer buf;
++  int i;
++
++  if (vid->video_cont_num >= 0){
++    printf("arVideoCapStart has already been called.\n");
++    return -1;
++  }
++
++  vid->video_cont_num = 0;
++
++  for (i = 0; i < vid->n_buffers; ++i) {
++    memset(&buf, 0, sizeof(buf));
++    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++    buf.memory = V4L2_MEMORY_MMAP;
++    buf.index = i;
++    if (ioctl(vid->fd, VIDIOC_QBUF, &buf)) {
++      printf("ar2VideoCapStart: Error calling VIDIOC_QBUF: %d\n", errno);
++      return -1;
++    }
++  }
++
++  type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++  if (ioctl(vid->fd, VIDIOC_STREAMON, &type)) {
++    printf("ar2VideoCapStart: Error calling VIDIOC_STREAMON\n");
++    return -1;
++  }
++
++  return 0;
++}
++
++int ar2VideoCapNext( AR2VideoParamT *vid )
++{
++  struct v4l2_buffer buf;
++
++  if (vid->video_cont_num < 0){
++    printf("arVideoCapStart has never been called.\n");
++    return -1;
++  }
++
++  memset(&buf, 0, sizeof(buf));
++  buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++  buf.memory = V4L2_MEMORY_MMAP;
++  buf.index = vid->video_cont_num;
++
++  if (ioctl(vid->fd, VIDIOC_QBUF, &buf)) {
++    printf("ar2VideoCapNext: Error calling VIDIOC_QBUF: %d\n", errno);
++    return 1;
++  }
++
++  return 0;
++}
++
++int ar2VideoCapStop( AR2VideoParamT *vid )
++{
++  enum v4l2_buf_type type;
++  if(vid->video_cont_num < 0){
++    printf("arVideoCapStart has never been called.\n");
++    return -1;
++  }
++
++  type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++
++  if (ioctl(vid->fd, VIDIOC_STREAMOFF, &type)) {
++    printf("Error calling VIDIOC_STREAMOFF\n");
++    return -1;
++  }
++
++  vid->video_cont_num = -1;
++
++  return 0;
++}
++
++
++ARUint8 *ar2VideoGetImage( AR2VideoParamT *vid )
++{
++    ARUint8 *buffer;
++    struct v4l2_buffer buf;
++
++    if(vid->video_cont_num < 0){
++        printf("arVideoCapStart has never been called.\n");
++        return NULL;
++    }
++
++    memset(&buf, 0, sizeof(buf));
++    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++    buf.memory = V4L2_MEMORY_MMAP;
++
++    if (ioctl(vid->fd, VIDIOC_DQBUF, &buf) < 0) {
++      printf("Error calling VIDIOC_DQBUF: %d\n", errno);
++      return NULL;
++    }
++    
++    buffer = (ARUint8*)vid->buffers[buf.index].start;
++    vid->video_cont_num = buf.index;
++
++    // TODO: Add other video format conversions.
++    if (vid->palette == V4L2_PIX_FMT_YUYV) {
++#if defined(AR_PIX_FORMAT_BGRA)
++      ccvt_yuyv_rgb32(vid->width, vid->height, buffer, vid->videoBuffer);
++#else
++      ccvt_yuyv_rgb24(vid->width, vid->height, buffer, vid->videoBuffer);
++#endif
++      return vid->videoBuffer;
++    }
++
++    return buffer;
++
++}
++
++int ar2VideoInqSize(AR2VideoParamT *vid, int *x,int *y)
++{
++  *x = vid->width;
++  *y = vid->height;
++
++  return 0;
++}
++
+diff -urN ARToolKit-2.72.1.original/util/calib_camera2/main.c ARToolKit/util/calib_camera2/main.c
+--- ARToolKit-2.72.1.original/util/calib_camera2/main.c	2006-10-04 06:35:27.000000000 +0900
++++ ARToolKit/util/calib_camera2/main.c	2010-10-03 14:06:30.000000000 +0900
+@@ -64,6 +64,8 @@
+ char 			*vconf = "videotestsrc ! capsfilter caps=video/x-raw-rgb,bpp=24 ! identity name=artoolkit ! fakesink";
+ #  elif defined(AR_INPUT_V4L)
+ static char            *vconf = "-width=640 -height=480";
++#  elif defined(AR_INPUT_V4L2)
++static char            *vconf = "-width=640 -height=480";
+ #  elif defined(AR_INPUT_1394CAM)
+ static char            *vconf = "-mode=640x480_YUV411";
+ #  elif defined(AR_INPUT_DV)
+diff -urN ARToolKit-2.72.1.original/util/calib_cparam/calib_cparam.c ARToolKit/util/calib_cparam/calib_cparam.c
+--- ARToolKit-2.72.1.original/util/calib_cparam/calib_cparam.c	2006-09-15 12:08:18.000000000 +0900
++++ ARToolKit/util/calib_cparam/calib_cparam.c	2010-10-03 14:06:30.000000000 +0900
+@@ -64,6 +64,8 @@
+ char 			*vconf = "videotestsrc";
+ #  elif defined(AR_INPUT_V4L)
+ char            *vconf = "-width=640 -height=480";
++#  elif defined(AR_INPUT_V4L2)
++char            *vconf = "-width=640 -height=480";
+ #  elif defined(AR_INPUT_1394CAM)
+ char            *vconf = "-mode=640x480_YUV411";
+ #  elif defined(AR_INPUT_DV)
+diff -urN ARToolKit-2.72.1.original/util/calib_distortion/calib_dist.c ARToolKit/util/calib_distortion/calib_dist.c
+--- ARToolKit-2.72.1.original/util/calib_distortion/calib_dist.c	2006-10-04 06:35:19.000000000 +0900
++++ ARToolKit/util/calib_distortion/calib_dist.c	2010-10-03 14:06:30.000000000 +0900
+@@ -64,6 +64,8 @@
+ char 			*vconf = "videotestsrc";
+ #  elif defined(AR_INPUT_V4L)
+ char            *vconf = "-width=640 -height=480";
++#  elif defined(AR_INPUT_V4L2)
++char            *vconf = "-width=640 -height=480";
+ #  elif defined(AR_INPUT_1394CAM)
+ char            *vconf = "-mode=640x480_YUV411";
+ #  elif defined(AR_INPUT_DV)
+diff -urN ARToolKit-2.72.1.original/util/mk_patt/mk_patt.c ARToolKit/util/mk_patt/mk_patt.c
+--- ARToolKit-2.72.1.original/util/mk_patt/mk_patt.c	2006-09-15 12:08:18.000000000 +0900
++++ ARToolKit/util/mk_patt/mk_patt.c	2010-10-03 14:06:30.000000000 +0900
+@@ -61,6 +61,8 @@
+ char 			*vconf = "videotestsrc";
+ #  elif defined(AR_INPUT_V4L)
+ char            *vconf = "-width=640 -height=480";
++#  elif defined(AR_INPUT_V4L2)
++char            *vconf = "-width=640 -height=480";
+ #  elif defined(AR_INPUT_1394CAM)
+ char            *vconf = "-mode=640x480_YUV411";
+ #  elif defined(AR_INPUT_DV)
