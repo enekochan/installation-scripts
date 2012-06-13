@@ -75,4 +75,6 @@ eval "sudo cp -R dom/include /usr/local/include/colladadom 2>&1 | tee install.lo
 
 eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
 
+eval "echo \"Installation complete.\" 2>&1 | tee install.log"
+
 exit
