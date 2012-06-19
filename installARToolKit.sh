@@ -11,10 +11,12 @@ function readPrompt() {
   done
 }
 
-#rm install.log >> /dev/null 2>> /dev/null
+LOG_FILE=`pwd`"/install.log"
+
+#rm $LOG_FILE >> /dev/null 2>> /dev/null
 
 UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
-eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee install.log"
+eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee $LOG_FILE"
 
 CPU_COUNT=`cat /proc/cpuinfo | grep processor | wc -l`
 if [ $CPU_COUNT != "1" ]; then
@@ -40,12 +42,12 @@ V4L2_SUPPORT=$result
 #OPENKINECT_SUPPORT=$result
 OPENKINECT_SUPPORT="n"
 
-eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee install.log $VERBOSE"
-eval "sudo apt-get update 2>&1 | tee install.log $VERBOSE"
+eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo apt-get update 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "echo \"Installing dependencies...\" 2>&1 | tee install.log $VERBOSE"
+eval "echo \"Installing dependencies...\" 2>&1 | tee $LOG_FILE $VERBOSE"
 if [ $UBUNTU_VERSION == "10.04" -o $UBUNTU_VERSION == "10.10" -o $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
-  eval "sudo apt-get -y install freeglut3-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libxi-dev libxmu-headers libxmu-dev libjpeg62-dev libglib2.0-dev libgtk2.0-dev 2>&1 | tee install.log $VERBOSE"
+  eval "sudo apt-get -y install freeglut3-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libxi-dev libxmu-headers libxmu-dev libjpeg62-dev libglib2.0-dev libgtk2.0-dev 2>&1 | tee $LOG_FILE $VERBOSE"
 #elif [ $UBUNTU_VERSION == "XX.XX" ];then
 #  echo "XX.XX"
 fi
@@ -55,13 +57,13 @@ if [ $DELETE_ARTOOLKIT_FOLDER == "y" ]; then
 fi
 
 if [ ! -e ARToolKit ]; then
-  eval "wget \"http://sourceforge.net/projects/artoolkit/files/artoolkit/2.72.1/ARToolKit-2.72.1.tgz/download\" -O ARToolKit-2.72.1.tgz 2>&1 | tee install.log $VERBOSE"
-  eval "tar xzvpf ARToolKit-2.72.1.tgz 2>&1 | tee install.log $VERBOSE"
+  eval "wget \"http://sourceforge.net/projects/artoolkit/files/artoolkit/2.72.1/ARToolKit-2.72.1.tgz/download\" -O ARToolKit-2.72.1.tgz 2>&1 | tee $LOG_FILE $VERBOSE"
+  eval "tar xzvpf ARToolKit-2.72.1.tgz 2>&1 | tee $LOG_FILE $VERBOSE"
 ## Download from the SVN repository
-#  eval "sudo apt-get install -y subversion 2>&1 | tee install.log $VERBOSE"
-#  eval "svn co https://artoolkit.svn.sourceforge.net/svnroot/artoolkit/trunk ARToolKit 2>&1 | tee install.log $VERBOSE"
-#  eval "mv -f ./ARToolKit/artoolkit/* ./ARToolKit 2>&1 | tee install.log $VERBOSE"
-#  eval "rm -fR ./ARToolKit/artoolkit 2>&1 | tee install.log $VERBOSE"
+#  eval "sudo apt-get install -y subversion 2>&1 | tee $LOG_FILE $VERBOSE"
+#  eval "svn co https://artoolkit.svn.sourceforge.net/svnroot/artoolkit/trunk ARToolKit 2>&1 | tee $LOG_FILE $VERBOSE"
+#  eval "mv -f ./ARToolKit/artoolkit/* ./ARToolKit 2>&1 | tee $LOG_FILE $VERBOSE"
+#  eval "rm -fR ./ARToolKit/artoolkit 2>&1 | tee $LOG_FILE $VERBOSE"
 ###################################################################################
 fi
 
@@ -69,25 +71,25 @@ cd ARToolKit
 
 if [ $V4L2_SUPPORT == "y" -a $OPENKINECT_SUPPORT == "y" ]; then
   if [ $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
-    eval "patch -N -p1 -i ../Patches/ARToolKit/v4l2-Freenect-GST_LIBS.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/v4l2-Freenect-GST_LIBS.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   else
-    eval "patch -N -p1 -i ../Patches/ARToolKit/v4l2-Freenect.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/v4l2-Freenect.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   fi
 elif [ $V4L2_SUPPORT == "y" ]; then
   if [ $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
-    eval "patch -N -p1 -i ../Patches/ARToolKit/artk-v4l2-2.72.1.20120613-GST_LIBS.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/artk-v4l2-2.72.1.20120613-GST_LIBS.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   else
-    eval "patch -N -p1 -i ../Patches/ARToolKit/artk-v4l2-2.72.1.20120613.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/artk-v4l2-2.72.1.20120613.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   fi
 elif [ $OPENKINECT_SUPPORT == "y" ]; then
   if [ $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
-    eval "patch -N -p1 -i ../Patches/ARToolKit/Freenect-GST_LIBS.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/Freenect-GST_LIBS.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   else
-    eval "patch -N -p1 -i ../Patches/ARToolKit/Freenect.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/Freenect.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   fi
 else
   if [ $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
-    eval "patch -N -p1 -i ../Patches/ARToolKit/GST_LIBS.patch 2>&1 | tee install.log $VERBOSE"
+    eval "patch -N -p1 -i ../Patches/ARToolKit/GST_LIBS.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   #else
   #  
   fi
@@ -101,14 +103,14 @@ echo "Third: "
 ./Configure
 
 # This patch is common to all (fixes a problem with osgART)
-eval "patch -N -p1 -i ../Patches/ARToolKit/VideoGStreamer.patch 2>&1 | tee install.log $VERBOSE"
+eval "patch -N -p1 -i ../Patches/ARToolKit/VideoGStreamer.patch 2>&1 | tee $LOG_FILE $VERBOSE"
 
 echo "Compiling ARToolKit..."
-eval "echo \"Compiling ARToolKit...\" 2>&1 | tee install.log"
-eval "make $CPU_COUNT 2>&1 | tee install.log $VERBOSE"
+eval "echo \"Compiling ARToolKit...\" 2>&1 | tee $LOG_FILE"
+eval "make $CPU_COUNT 2>&1 | tee $LOG_FILE $VERBOSE"
 echo "Copying libraries and include files to your system..."
-eval "sudo cp -R ./include/AR /usr/local/include/ 2>&1 | tee install.log $VERBOSE"
-eval "sudo cp ./lib/*.a /usr/local/lib/ 2>&1 | tee install.log $VERBOSE"
+eval "sudo cp -R ./include/AR /usr/local/include/ 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo cp ./lib/*.a /usr/local/lib/ 2>&1 | tee $LOG_FILE $VERBOSE"
 
 rm AR.pc >> /dev/null 2>> /dev/null
 touch AR.pc
@@ -124,45 +126,45 @@ echo "Libs: -L\${libdir} -lARgsub -lARgsub_lite -lARgsubUtil -lARMulti -lARvideo
 echo "Cflags: -I\${includedir}/AR" >> AR.pc
 
 if [ -d "/usr/lib/pkgconfig/" ]; then
-  eval "sudo mv AR.pc /usr/lib/pkgconfig/ 2>&1 | tee install.log $VERBOSE"
+  eval "sudo mv AR.pc /usr/lib/pkgconfig/ 2>&1 | tee $LOG_FILE $VERBOSE"
 else
   if [ -d "/usr/lib/pkg-config/" ]; then
-    eval "sudo mv AR.pc /usr/lib/pkg-config/ 2>&1 | tee install.log $VERBOSE"
+    eval "sudo mv AR.pc /usr/lib/pkg-config/ 2>&1 | tee $LOG_FILE $VERBOSE"
   else
-    eval "echo \"Couldn't find path for pkgconfig folder. Continuing anyway...\" 2>&1 | tee install.log"
+    eval "echo \"Couldn't find path for pkgconfig folder. Continuing anyway...\" 2>&1 | tee $LOG_FILE"
   fi
 fi
 
 if [ -c /dev/video* ]; then
   ARTOOLKIT_BASHRC=`cat ~/.bashrc | grep ARTOOLKIT_CONFIG`
   if [ "$ARTOOLKIT_BASHRC" != "" ]; then
-    eval "echo \"ARTOOLKIT_CONFIG variable is already defined in ~/.bashrc\" 2>&1 | tee install.log"
-    eval "echo \"Please verify that it is pointing to one of those devices:\" 2>&1 | tee install.log"
-    eval "echo \"\" 2>&1 | tee install.log"
-    eval "ls -l /dev/video* | awk '{print $9}' 2>&1 | tee install.log"
+    eval "echo \"ARTOOLKIT_CONFIG variable is already defined in ~/.bashrc\" 2>&1 | tee $LOG_FILE"
+    eval "echo \"Please verify that it is pointing to one of those devices:\" 2>&1 | tee $LOG_FILE"
+    eval "echo \"\" 2>&1 | tee $LOG_FILE"
+    eval "ls -l /dev/video* | awk '{print $9}' 2>&1 | tee $LOG_FILE"
   else
     CAMERA=""
-    eval "echo \"Webcams installed in the system:\" 2>&1 | tee install.log"
-    eval "echo \"\" 2>&1 | tee install.log"
-    eval "ls -l /dev/video* | awk '{print $9}' 2>&1 | tee install.log"
-    eval "echo \"\" 2>&1 | tee install.log"
+    eval "echo \"Webcams installed in the system:\" 2>&1 | tee $LOG_FILE"
+    eval "echo \"\" 2>&1 | tee $LOG_FILE"
+    eval "ls -l /dev/video* | awk '{print $9}' 2>&1 | tee $LOG_FILE"
+    eval "echo \"\" 2>&1 | tee $LOG_FILE"
     while [ $CAMERA -ne $CAMERA 2> /dev/null ] # Is it numeric?
     do
       read -p "Select a camera. For /dev/video0 write 0 and press enter: " CAMERA
       if [ ! -c /dev/video$CAMERA ]; then
-        eval "echo \"/dev/video\"$CAMARA\" does not exist. 2>&1 | tee install.log"
+        eval "echo \"/dev/video\"$CAMARA\" does not exist. 2>&1 | tee $LOG_FILE"
         CAMERA=""
       fi
     done
-    eval "echo \"\" >> ~/.bashrc 2>&1 | tee install.log"
+    eval "echo \"\" >> ~/.bashrc 2>&1 | tee $LOG_FILE"
     echo "export ARTOOLKIT_CONFIG=\"v4l2src device=/dev/video$CAMERA use-fixed-fps=false ! ffmpegcolorspace ! capsfilter caps=video/x-raw-rgb,bpp=24 ! identity name=artoolkit ! fakesink\"" >> ~/.bashrc
   fi
 else
-  eval "echo \"Couldn't find any webcam connected to the system. You'll have to configure ARTOOLKIT_CONFIG yourself.\" 2>&1 | tee install.log"
+  eval "echo \"Couldn't find any webcam connected to the system. You'll have to configure ARTOOLKIT_CONFIG yourself.\" 2>&1 | tee $LOG_FILE"
 fi
 
-eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
+eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "echo \"Installation complete.\" 2>&1 | tee install.log"
+eval "echo \"Installation complete.\" 2>&1 | tee $LOG_FILE"
 
 exit

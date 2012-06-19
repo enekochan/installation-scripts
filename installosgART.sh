@@ -11,10 +11,12 @@ function readPrompt() {
   done
 }
 
-#rm install.log >> /dev/null 2>> /dev/null
+LOG_FILE=`pwd`"/install.log"
+
+#rm $LOG_FILE >> /dev/null 2>> /dev/null
 
 UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
-eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee install.log"
+eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee $LOG_FILE"
 
 CPU_COUNT=`cat /proc/cpuinfo | grep processor | wc -l`
 if [ $CPU_COUNT != "1" ]; then
@@ -39,41 +41,41 @@ CONT=$result
 #PERMISSIVE_FIX=$result
 PERMISSIVE_FIX=y
 
-#eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee install.log $VERBOSE"
-#eval "sudo apt-get update 2>&1 | tee install.log $VERBOSE"
+#eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee $LOG_FILE $VERBOSE"
+#eval "sudo apt-get update 2>&1 | tee $LOG_FILE $VERBOSE"
 
-#eval "echo \"Installing dependencies...\" 2>&1 | tee install.log $VERBOSE"
-#eval "sudo apt-get -y install cmake cmake-curses-gui 2>&1 | tee install.log $VERBOSE"
+#eval "echo \"Installing dependencies...\" 2>&1 | tee $LOG_FILE $VERBOSE"
+#eval "sudo apt-get -y install cmake cmake-curses-gui 2>&1 | tee $LOG_FILE $VERBOSE"
 
 if [ $DELETE_OSGART_FOLDER == "y" ]; then
   rm -Rf osgART_2.0_RC3 >> /dev/null 2>> /dev/null
 fi
 
 if [ ! -e osgART_2.0_RC3 ]; then
-  eval "wget http://www.osgart.org/wiki/images/f/fa/Osgart_2.0_rc3.zip -O Osgart_2.0_rc3.zip 2>&1 | tee install.log $VERBOSE"
-  eval "unzip Osgart_2.0_rc3.zip 2>&1 | tee install.log $VERBOSE"
+  eval "wget http://www.osgart.org/wiki/images/f/fa/Osgart_2.0_rc3.zip -O Osgart_2.0_rc3.zip 2>&1 | tee $LOG_FILE $VERBOSE"
+  eval "unzip Osgart_2.0_rc3.zip 2>&1 | tee $LOG_FILE $VERBOSE"
   rm -Rf __MACOSX >> /dev/null 2>> /dev/null
 fi
 
 cd osgART_2.0_RC3
 if [ $CONT == "y" ]; then
-  eval "patch -N -p1 -i ../Patches/osgART/osgART_Cont.patch 2>&1 | tee install.log $VERBOSE"
+  eval "patch -N -p1 -i ../Patches/osgART/osgART_Cont.patch 2>&1 | tee $LOG_FILE $VERBOSE"
 fi
 if [ $PERMISSIVE_FIX == "n" ]; then
   PERMISSIVE_FIX="-DCMAKE_CXX_FLAGS=-fpermissive"
 else
-  eval "patch -N -p1 -i ../Patches/osgART/osgART_Permissive.patch 2>&1 | tee install.log $VERBOSE"
+  eval "patch -N -p1 -i ../Patches/osgART/osgART_Permissive.patch 2>&1 | tee $LOG_FILE $VERBOSE"
   PERMISSIVE_FIX=""
 fi
 if [ ! -e build ]; then mkdir build; fi
 cd build
-eval "cmake .. $PERMISSIVE_FIX -DCMAKE_MODULE_LINKER_FLAGS=-lgstreamer-0.10 -DCMAKE_SHARED_LINKER_FLAGS=-lgstreamer-0.10 2>&1 | tee install.log $VERBOSE"
-eval "echo \"Compiling osgART...\" 2>&1 | tee install.log"
-eval "make $CPU_COUNT 2>&1 | tee install.log $VERBOSE"
-eval "sudo make install 2>&1 | tee install.log $VERBOSE"
+eval "cmake .. $PERMISSIVE_FIX -DCMAKE_MODULE_LINKER_FLAGS=-lgstreamer-0.10 -DCMAKE_SHARED_LINKER_FLAGS=-lgstreamer-0.10 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "echo \"Compiling osgART...\" 2>&1 | tee $LOG_FILE"
+eval "make $CPU_COUNT 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo make install 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
+eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "echo \"Installation complete.\" 2>&1 | tee install.log"
+eval "echo \"Installation complete.\" 2>&1 | tee $LOG_FILE"
 
 exit

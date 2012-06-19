@@ -13,10 +13,12 @@ function readPrompt() {
   done
 }
 
-#rm install.log >> /dev/null 2>> /dev/null
+LOG_FILE=`pwd`"/install.log"
+
+#rm $LOG_FILE >> /dev/null 2>> /dev/null
 
 #UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
-#eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee install.log"
+#eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee $LOG_FILE"
 
 CPU_COUNT=`cat /proc/cpuinfo | grep processor | wc -l`
 if [ $CPU_COUNT != "1" ]; then
@@ -35,11 +37,11 @@ if [ -d libfreenect ]; then
   DELETE_FREENECT_FOLDER=$result
 fi
 
-eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee install.log $VERBOSE"
-eval "sudo apt-get update 2>&1 | tee install.log $VERBOSE"
+eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo apt-get update 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "echo \"Installing dependencies...\" 2>&1 | tee install.log $VERBOSE"
-eval "sudo apt-get -y install git libusb-1.0-0-dev cmake pkg-config build-essential libxmu-dev freeglut3-dev 2>&1 | tee install.log $VERBOSE"
+eval "echo \"Installing dependencies...\" 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo apt-get -y install git libusb-1.0-0-dev cmake pkg-config build-essential libxmu-dev freeglut3-dev 2>&1 | tee $LOG_FILE $VERBOSE"
 #If you are using an old version of Ubuntu install libglut3-dev instead of freeglut3-dev
 
 if [ $DELETE_FREENECT_FOLDER == "y" ]; then
@@ -47,18 +49,18 @@ if [ $DELETE_FREENECT_FOLDER == "y" ]; then
 fi
 
 if [ ! -e libfreenect ]; then
-  eval "git clone git://github.com/OpenKinect/libfreenect.git 2>&1 | tee install.log $VERBOSE"
+  eval "git clone git://github.com/OpenKinect/libfreenect.git 2>&1 | tee $LOG_FILE $VERBOSE"
 fi
 cd libfreenect
 if [ ! -e build ]; then mkdir build; fi
 cd build
-eval "cmake .. 2>&1 | tee install.log $VERBOSE"
-eval "echo \"Compiling libfreenect...\" 2>&1 | tee install.log"
-eval "make $CPU_COUNT 2>&1 | tee install.log $VERBOSE"
-eval "sudo make install 2>&1 | tee install.log $VERBOSE"
-eval "sudo ldconfig /usr/local/lib64/ 2>&1 | tee install.log $VERBOSE"
-eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
-eval "sudo adduser $USER video 2>&1 | tee install.log $VERBOSE"
+eval "cmake .. 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "echo \"Compiling libfreenect...\" 2>&1 | tee $LOG_FILE"
+eval "make $CPU_COUNT 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo make install 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo ldconfig /usr/local/lib64/ 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo adduser $USER video 2>&1 | tee $LOG_FILE $VERBOSE"
 touch 51-kinect.rules
 echo "# ATTR{product}==\"Xbox NUI Motor\"" >> 51-kinect.rules
 echo "SUBSYSTEM==\"usb\", ATTR{idVendor}==\"045e\", ATTR{idProduct}==\"02b0\", MODE=\"0666\"" >> 51-kinect.rules
@@ -68,9 +70,9 @@ echo "# ATTR{product}==\"Xbox NUI Camera\"" >> 51-kinect.rules
 echo "SUBSYSTEM==\"usb\", ATTR{idVendor}==\"045e\", ATTR{idProduct}==\"02ae\", MODE=\"0666\"" >> 51-kinect.rules
 sudo mv 51-kinect.rules /etc/udev/rules.d/
 
-eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
+eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee $LOG_FILE $VERBOSE"
 
-eval "echo \"Installation complete.\" 2>&1 | tee install.log"
+eval "echo \"Installation complete.\" 2>&1 | tee $LOG_FILE"
 
 # To test the installation plug the Kinect to the USB port and execute:
 # /usr/local/bin/glview
