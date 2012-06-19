@@ -13,6 +13,12 @@ function readPrompt() {
   done
 }
 
+if [ ! -d OpenNI ]; then
+  mkdir OpenNI
+fi
+
+cd OpenNI
+
 #rm install.log >> /dev/null 2>> /dev/null
 
 #UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
@@ -30,10 +36,6 @@ readPrompt "Do you want to see verbose installation progress? " "n"
 VERBOSE=$result
 if [ $VERBOSE == "n" ]; then VERBOSE=" > /dev/null"; else VERBOSE=""; fi
 
-if [ ! -d OpenNI ]; then
-  mkdir OpenNI
-fi
-
 if [ `lsmod | grep gspca_kinect`"" != "" ]; then
   echo "The gspca_kinect module is currently loaded (it enables the use of Kinect as a webcam)."
   echo "It should be unloaded before running any OpenNI or NITE program."
@@ -43,8 +45,6 @@ if [ `lsmod | grep gspca_kinect`"" != "" ]; then
   readPrompt "Should I blacklist it for the next reboot when installation finishes?" "y"
   BLACKLIST_GSPCA_KINECT_MODULE=$result
 fi
-
-cd OpenNI
 
 DELETE_OPENNI_FOLDER="n"
 if [ -d OpenNI* ]; then
@@ -132,7 +132,7 @@ mv Sample-User.xml.new Sample-User.xml
 eval "niLicense PrimeSense 0KOIk2JeIBYClPWVnMoRKn5cdY4= 2>&1 | tee install.log $VERBOSE"
 cd ..
 eval "sudo ./install.sh 2>&1 | tee install.log $VERBOSE"
-cd..
+cd ..
 
 if [ $UNLOAD_GSPCA_KINECT_MODULE == "y" ]; then
   eval "echo \"Unloading gspca_kinect...\" 2>&1 | tee install.log $VERBOSE"
