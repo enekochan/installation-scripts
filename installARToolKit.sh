@@ -36,8 +36,9 @@ fi
 
 readPrompt "Add V4L2 support to ARToolKit? " "y"
 V4L2_SUPPORT=$result
-readPrompt "Add OpenKinect (libfreenect) support to ARToolKit? " "y"
-OPENKINECT_SUPPORT=$result
+#readPrompt "Add OpenKinect (libfreenect) support to ARToolKit? " "y"
+#OPENKINECT_SUPPORT=$result
+OPENKINECT_SUPPORT="n"
 
 eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee install.log $VERBOSE"
 eval "sudo apt-get update 2>&1 | tee install.log $VERBOSE"
