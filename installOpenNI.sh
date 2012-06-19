@@ -2,6 +2,11 @@
 
 #Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
 
+#rm install.log >> /dev/null 2>> /dev/null
+
+#UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
+#eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee install.log"
+
 function readPrompt() {
   while true; do
     read -e -p "$1"": " -i "$2" result
@@ -18,11 +23,6 @@ if [ ! -d OpenNI ]; then
 fi
 
 cd OpenNI
-
-#rm install.log >> /dev/null 2>> /dev/null
-
-#UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
-#eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee install.log"
 
 ARCH=`uname -m`
 eval "echo \"Detected "$ARCH" architecture...\" 2>&1 | tee install.log"
@@ -155,10 +155,10 @@ fi
 eval "sudo ldconfig /etc/ld.so.conf 2>&1 | tee install.log $VERBOSE"
 eval "sudo ldconfig /usr/local/lib64/ 2>&1 | tee install.log $VERBOSE"
 
-echo "Unplug and plug again the Kinect so the new udev rules can take effect."
+eval "echo \"Unplug and plug again the Kinect so the new udev rules can take effect.\" 2>&1 | tee install.log $VERBOSE"
 
 # To test OpenNI installation execute:
-# ./`ls | grep OpenNI-`/Platform/Linux/Bin/x86-Release/Sample-NiUserTracker
+# ./`ls | grep OpenNI`/Platform/Linux/Bin/x86-Release/Sample-NiUserTracker
 
 # To test NITE installation execute:
 # ./`ls | grep NITE-Bin`/Samples/Bin/x86-Release/Sample-TrackPad
