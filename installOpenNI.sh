@@ -36,6 +36,8 @@ readPrompt "Do you want to see verbose installation progress? " "n"
 VERBOSE=$result
 if [ $VERBOSE == "n" ]; then VERBOSE=" > /dev/null"; else VERBOSE=""; fi
 
+UNLOAD_GSPCA_KINECT_MODULE="n"
+BLACKLIST_GSPCA_KINECT_MODULE="n"
 if [ `lsmod | grep gspca_kinect`"" != "" ]; then
   echo "The gspca_kinect module is currently loaded (it enables the use of Kinect as a webcam)."
   echo "It should be unloaded before running any OpenNI or NITE program."
