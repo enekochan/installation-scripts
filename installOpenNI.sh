@@ -136,7 +136,7 @@ mv Sample-User.xml.new Sample-User.xml
 eval "niLicense PrimeSense 0KOIk2JeIBYClPWVnMoRKn5cdY4= 2>&1 | tee $LOG_FILE $VERBOSE"
 cd ..
 eval "sudo ./install.sh 2>&1 | tee $LOG_FILE $VERBOSE"
-eval "sudo cp Data /usr/etc/primesense 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo cp -R Data /usr/etc/primesense 2>&1 | tee $LOG_FILE $VERBOSE"
 cd ..
 
 if [ $UNLOAD_GSPCA_KINECT_MODULE == "y" ]; then
