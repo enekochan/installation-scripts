@@ -29,6 +29,7 @@ readPrompt "Do you want to see verbose installation progress? " "n"
 VERBOSE=$result
 if [ $VERBOSE == "n" ]; then VERBOSE=" > /dev/null"; else VERBOSE=""; fi
 
+DELETE_OSGART_FOLDER="n"
 if [ -d osgART_2.0_RC3 ]; then
   readPrompt "osgART_2.0_RC3 folder already exists, should I overwrite it? " "n"
   DELETE_OSGART_FOLDER=$result
