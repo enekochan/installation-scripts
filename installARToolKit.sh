@@ -31,6 +31,7 @@ readPrompt "Do you want to see verbose installation progress? " "n"
 VERBOSE=$result
 if [ $VERBOSE == "n" ]; then VERBOSE=" > /dev/null"; else VERBOSE=""; fi
 
+DELETE_ARTOOLKIT_FOLDER="n"
 if [ -d ARToolKit ]; then
   readPrompt "ARToolKit folder already exists, should I overwrite it? " "n"
   DELETE_ARTOOLKIT_FOLDER=$result

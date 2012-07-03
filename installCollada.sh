@@ -29,6 +29,7 @@ readPrompt "Do you want to see verbose installation progress? " "n"
 VERBOSE=$result
 if [ $VERBOSE == "n" ]; then VERBOSE=" > /dev/null"; else VERBOSE=""; fi
 
+DELETE_COLLADA_FOLDER="n"
 if [ -d collada-dom ]; then
   readPrompt "collada-dom folder already exists, should I overwrite it? " "n"
   DELETE_COLLADA_FOLDER=$result
