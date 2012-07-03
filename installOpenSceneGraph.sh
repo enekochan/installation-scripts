@@ -79,9 +79,9 @@ if [ ! -e OpenSceneGraph-$VERSION ]; then
 fi
 
 cd OpenSceneGraph-$VERSION
-if [ $UBUNTU_VERSION == "12.04" ];then
+if [ $UBUNTU_VERSION == "11.10" -o $UBUNTU_VERSION == "12.04" ];then
   eval "patch -N -p1 -i ../Patches/OpenSceneGraph/OpenSceneGraph-$VERSION-$UBUNTU_VERSION.patch 2>&1 | tee $LOG_FILE $VERBOSE"
-#elif [ $UBUNTU_VERSION == "10.04" -o $UBUNTU_VERSION == "10.10" -o $UBUNTU_VERSION == "11.04" -o $UBUNTU_VERSION == "11.10" ];then
+#elif [ $UBUNTU_VERSION == "10.04" -o $UBUNTU_VERSION == "10.10" -o $UBUNTU_VERSION == "11.04" ];then
   #eval "patch -N -p1 -i ../Patches/OpenSceneGraph/OpenSceneGraph-$VERSION-$UBUNTU_VERSION.patch 2>&1 | tee $LOG_FILE $VERBOSE"
 fi
 if [ ! -e build ]; then mkdir build; fi

@@ -40,7 +40,7 @@ CONT=$result
 
 #readPrompt "Do you want to apply the -fpermissive fix patch? " "y"
 #PERMISSIVE_FIX=$result
-PERMISSIVE_FIX=y
+PERMISSIVE_FIX="y"
 
 #eval "echo \"Updating apt database (may ask for your password)\" 2>&1 | tee $LOG_FILE $VERBOSE"
 #eval "sudo apt-get update 2>&1 | tee $LOG_FILE $VERBOSE"
