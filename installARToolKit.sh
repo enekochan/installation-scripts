@@ -106,7 +106,7 @@ fi
 echo "Now you will be asked 3 questions to configure ARToolKit."
 echo "First: You have to choose the input driver for ARToolKit (probably you should choose \"GStreamer Media Framework\")."
 echo "Second: If you want debug simbols answer \"y\" to the next question."
-echo "Third: "
+echo "Third: If your graphics card supports texture rectangle or not."
 
 ./Configure
 
