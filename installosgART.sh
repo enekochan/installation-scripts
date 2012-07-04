@@ -1,11 +1,18 @@
 #!/bin/bash
 
+#
+# osgART 2.0 RC3 installation script for Ubuntu
+#
+# Author: enekochan
+# URL: http://tech.enekochan.com
+#
+
 function readPrompt() {
   while true; do
     read -e -p "$1"": " -i "$2" result
     case $result in
-      [Yy]* ) break;;
-      [Nn]* ) break;;
+      Y|y ) result="y"; break;;
+      N|n ) result="n"; break;;
       * ) echo "Please answer yes or no.";;
     esac
   done

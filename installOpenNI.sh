@@ -1,15 +1,19 @@
 #!/bin/bash
 
-#Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
-
-#rm $LOG_FILE >> /dev/null 2>> /dev/null
+#
+# OpenNI, Sensor Kinect (avin2) and NITE installation script for Ubuntu
+#
+# Author: enekochan
+# URL: http://tech.enekochan.com
+# Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
+#
 
 function readPrompt() {
   while true; do
     read -e -p "$1"": " -i "$2" result
     case $result in
-      [Yy]* ) break;;
-      [Nn]* ) break;;
+      Y|y ) result="y"; break;;
+      N|n ) result="n"; break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
@@ -22,6 +26,8 @@ fi
 cd OpenNI
 
 LOG_FILE=`pwd`"/install.log"
+
+#rm $LOG_FILE >> /dev/null 2>> /dev/null
 
 #UBUNTU_VERSION=`cat /etc/lsb-release | grep RELEASE | awk -F= '{print $2}'`
 #eval "echo \"Detected Ubuntu "$UBUNTU_VERSION" system...\" 2>&1 | tee $LOG_FILE"

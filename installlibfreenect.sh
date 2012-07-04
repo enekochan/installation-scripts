@@ -1,13 +1,19 @@
 #!/bin/bash
 
-#Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
+#
+# libfreenect installation script for Ubuntu
+#
+# Author: enekochan
+# URL: http://tech.enekochan.com
+# Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
+#
 
 function readPrompt() {
   while true; do
     read -e -p "$1"": " -i "$2" result
     case $result in
-      [Yy]* ) break;;
-      [Nn]* ) break;;
+      Y|y ) result="y"; break;;
+      N|n ) result="n"; break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
