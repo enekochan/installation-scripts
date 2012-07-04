@@ -1,0 +1,108 @@
+Only in OpenSceneGraph-3.0.0-12.04: build
+diff -crB OpenSceneGraph-3.0.0/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp
+*** OpenSceneGraph-3.0.0/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp	2011-04-19 13:40:22.000000000 +0200
+--- OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg/FFmpegDecoder.cpp	2012-07-04 14:06:04.481987134 +0200
+***************
+*** 1,6 ****
+--- 1,7 ----
+  
+  #include "FFmpegDecoder.hpp"
+  #include "FFmpegParameters.hpp"
++ #include <libavutil/mathematics.h>
+  
+  #include <osg/Notify>
+  #include <osgDB/FileNameUtils>
+***************
+*** 82,87 ****
+--- 83,91 ----
+              if (error != 0)
+              {
+                  std::string error_str;
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++                 error_str = AVERROR(error);
++ #else
+                  switch (error)
+                  {
+                      //case AVERROR_UNKNOWN: error_str = "AVERROR_UNKNOWN"; break;   // same value as AVERROR_INVALIDDATA
+***************
+*** 95,100 ****
+--- 99,105 ----
+                      case AVERROR_PATCHWELCOME: error_str = "AVERROR_PATCHWELCOME"; break;
+                      default: error_str = "Unknown error"; break;
+                  }
++ #endif
+  
+                  throw std::runtime_error("av_open_input_file() failed : " + error_str);
+              }
+***************
+*** 220,226 ****
+--- 225,235 ----
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++         if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
++ #else
+          if (m_format_context->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
++ #endif
+          {
+              m_audio_stream = m_format_context->streams[i];
+              m_audio_index = i;
+***************
+*** 238,244 ****
+--- 247,257 ----
+  {
+      for (unsigned int i = 0; i < m_format_context->nb_streams; ++i)
+      {
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++         if (m_format_context->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
++ #else
+          if (m_format_context->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
++ #endif
+          {
+              m_video_stream = m_format_context->streams[i];
+              m_video_index = i;
+Only in OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg: FFmpegDecoder.cpp~
+diff -crB OpenSceneGraph-3.0.0/src/osgPlugins/ffmpeg/FFmpegParameters.cpp OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg/FFmpegParameters.cpp
+*** OpenSceneGraph-3.0.0/src/osgPlugins/ffmpeg/FFmpegParameters.cpp	2011-06-17 14:57:31.000000000 +0200
+--- OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg/FFmpegParameters.cpp	2012-07-04 14:11:20.395954504 +0200
+***************
+*** 1,5 ****
+--- 1,8 ----
+  
+  #include "FFmpegParameters.hpp"
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++ #include "parseutils.h"
++ #endif
+  
+  #include <string>
+  #include <iostream>
+***************
+*** 55,61 ****
+--- 58,68 ----
+      else if (name == "frame_size")
+      {
+          int frame_width = 0, frame_height = 0;
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++         if (av_parse_video_size(&frame_width, &frame_height, value.c_str()) < 0)
++ #else
+          if (av_parse_video_frame_size(&frame_width, &frame_height, value.c_str()) < 0)
++ #endif
+          {
+              OSG_NOTICE<<"Failed to apply frame size: "<<value.c_str()<<std::endl;
+              return;
+***************
+*** 71,77 ****
+--- 78,88 ----
+      else if (name == "frame_rate")
+      {
+          AVRational frame_rate;
++ #if LIBAVCODEC_VERSION_MAJOR >= 53 || (LIBAVCODEC_VERSION_MAJOR==52 && LIBAVCODEC_VERSION_MINOR>=32)
++         if (av_parse_video_rate(&frame_rate, value.c_str()) < 0)
++ #else
+          if (av_parse_video_frame_rate(&frame_rate, value.c_str()) < 0)
++ #endif
+          {
+              OSG_NOTICE<<"Failed to apply frame rate: "<<value.c_str()<<std::endl;
+              return;
+Only in OpenSceneGraph-3.0.0-12.04/src/osgPlugins/ffmpeg: FFmpegParameters.cpp~
