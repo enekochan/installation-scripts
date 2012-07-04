@@ -56,3 +56,9 @@ Different patchs to solve some FFmpeg compatibility issues in some Ubuntu versio
 "osgART_Permissive.patch" solves a issue that forced using -fpermissive when configuring
 "osgART_Cont.patch" gives the option to use a more smooth way of tracking the pattern
 in ARToolKit (arGetTransMatCont instead of arGetTransMat).
+
+
+LICENSE
+-------
+See LICENSE file.
+
