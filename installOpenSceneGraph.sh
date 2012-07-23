@@ -45,12 +45,17 @@ if [ $DATA == "y" ]; then
   fi
 fi
 
-readPrompt "By default OpenSceneGraph-2.8.3 is installed, do you want to install OpenSceneGraph-2.9.6 instead? " "n"
 VERSION="n"
-if [ $result == "n" ]; then
-  VERSION="2.8.3";
+readPrompt "Do you want to install OpenSceneGraph 3.0.0?" "y"
+if [ $result == "y" ]; then
+  VERSION="3.0.0";
 else
-  VERSION="2.9.6";
+  readPrompt "Installing a 2.X.X version of OpenSceneGraph. By default OpenSceneGraph-2.8.3 is installed, do you want to install OpenSceneGraph-2.9.6 instead? " "n"
+  if [ $result == "n" ]; then
+    VERSION="2.8.3";
+  else
+    VERSION="2.9.6";
+  fi
 fi
 
 DELETE_OSG_FOLDER="n"
@@ -82,6 +87,9 @@ if [ ! -e OpenSceneGraph-$VERSION ]; then
   elif [ $VERSION == "2.9.6" ]; then
     eval "sudo apt-get install -y subversion 2>&1 | tee $LOG_FILE $VERBOSE"
     eval "svn checkout http://www.openscenegraph.org/svn/osg/OpenSceneGraph/tags/OpenSceneGraph-2.9.6 OpenSceneGraph-2.9.6 2>&1 | tee $LOG_FILE $VERBOSE"
+  elif [ $VERSION == "3.0.0" ]; then
+    eval "sudo apt-get install -y subversion 2>&1 | tee $LOG_FILE $VERBOSE"
+    eval "svn checkout http://www.openscenegraph.org/svn/osg/OpenSceneGraph/tags/OpenSceneGraph-3.0.0 OpenSceneGraph-3.0.0 2>&1 | tee $LOG_FILE $VERBOSE"
   fi
 fi
 
