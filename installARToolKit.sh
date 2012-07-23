@@ -119,6 +119,7 @@ eval "make $CPU_COUNT 2>&1 | tee $LOG_FILE $VERBOSE"
 echo "Copying libraries and include files to your system..."
 eval "sudo cp -R ./include/AR /usr/local/include/ 2>&1 | tee $LOG_FILE $VERBOSE"
 eval "sudo cp ./lib/*.a /usr/local/lib/ 2>&1 | tee $LOG_FILE $VERBOSE"
+eval "sudo cp -R ./bin/* /usr/local/bin/ 2>&1 | tee $LOG_FILE $VERBOSE"
 
 rm AR.pc >> /dev/null 2>> /dev/null
 touch AR.pc
