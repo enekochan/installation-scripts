@@ -1,5 +1,10 @@
 
-ARToolKit, Collada DOM, OpenSceneGraph and osgART installation scripts for Ubuntu.
+ARToolKit, Collada DOM, OpenSceneGraph and osgART installation scripts for
+Ubuntu and OpenCV 2.4.2 with ffmpeg installation script for Mac OS X 10.8.
+
+
+ARToolKit, Collada DOM, OpenSceneGraph and osgART for Ubuntu
+------------------------------------------------------------
 
 They are intended to work on multiple versions of Ubuntu from 10.04 to 12.04.
 Still working on this though (testing in all versions takes time...).
@@ -46,7 +51,7 @@ ARToolKit in Ubuntu 11.10 and upper.
 *OpenSceneGraph Patches*
 ************************
 
-Different patchs to solve some FFmpeg compatibility issues in some Ubuntu versions.
+Different patches to solve some FFmpeg compatibility issues in some Ubuntu versions.
 
 
 ****************
@@ -58,7 +63,24 @@ Different patchs to solve some FFmpeg compatibility issues in some Ubuntu versio
 in ARToolKit (arGetTransMatCont instead of arGetTransMat).
 
 
+OpenCV 2.4.2 with ffmpeg for Mac OS X 10.8
+------------------------------------------
+
+Just run the "installOpenCV-2.4.2-ffmpeg-OSX-ML.sh" script.
+
+More details about the installation process:
+
+http://tech.enekochan.com/2012/07/27/install-opencv-2-4-2-with-ffmpeg-support-in-mac-os-x-10-8/
+
+
+**************
+*OpenCV Patch*
+**************
+
+"OpenCV-2.4.2-ffmpeg-OSX-ML.patch" patches the "modules/highgui/CMakeLists.txt"
+file so it can correctly link lame and faac libraries with libopencv_highgui.
+
+
 LICENSE
 -------
 See LICENSE file.
-
