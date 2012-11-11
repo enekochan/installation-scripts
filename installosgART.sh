@@ -60,7 +60,7 @@ if [ $DELETE_OSGART_FOLDER == "y" ]; then
 fi
 
 if [ ! -e osgART_2.0_RC3 ]; then
-  eval "wget http://www.osgart.org/wiki/images/f/fa/Osgart_2.0_rc3.zip -O Osgart_2.0_rc3.zip 2>&1 | tee $LOG_FILE $VERBOSE"
+  eval "wget http://www.osgart.org/images/f/fa/Osgart_2.0_rc3.zip -O Osgart_2.0_rc3.zip 2>&1 | tee $LOG_FILE $VERBOSE"
   eval "unzip Osgart_2.0_rc3.zip 2>&1 | tee $LOG_FILE $VERBOSE"
   rm -Rf __MACOSX >> /dev/null 2>> /dev/null
 fi
