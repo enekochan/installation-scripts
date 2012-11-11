@@ -1,0 +1,13 @@
+--- modules/highgui/CMakeLists.txt.old	2012-07-27 15:46:52.000000000 +0200
++++ modules/highgui/CMakeLists.txt	2012-07-27 15:47:05.000000000 +0200
+@@ -155,6 +155,10 @@
+   list(APPEND HIGHGUI_LIBRARIES m3api)
+ endif(HAVE_XIMEA)
+ 
++if(APPLE)
++  list(APPEND HIGHGUI_LIBRARIES ${BZIP2_LIBRARIES} -lmp3lame -lfaac -lbz2)
++endif(APPLE)
++
+ if(HAVE_FFMPEG)
+   if(UNIX AND BZIP2_LIBRARIES)
+     list(APPEND HIGHGUI_LIBRARIES ${BZIP2_LIBRARIES})
