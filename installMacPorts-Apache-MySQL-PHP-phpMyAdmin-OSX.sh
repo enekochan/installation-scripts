@@ -218,8 +218,6 @@ tar xzvpf phpMyAdmin-3.5.4-all-languages.tar.gz
 sudo mv phpMyAdmin-3.5.4-all-languages phpmyadmin
 cd phpmyadmin
 sudo cp config.sample.inc.php config.inc.php
-# Fill the $cfg['blowfish_secret'] option in config.inc.php with a random key from
-# http://www.question-defense.com/tools/phpmyadmin-blowfish-secret-generator
 echo "Enter MySQL's root password."
 mysql5 -u root -p < examples/create_tables.sql
 read -e -p "Enter a password for pma user in phpmyadmin database"": " result
@@ -241,18 +239,26 @@ echo "FLUSH PRIVILEGES;" >> /tmp/grant.sql
 echo "Enter MySQL's root password."
 mysql5 -u root -p < /tmp/grant.sql
 rm /tmp/grant.sql
+PMA_PASSWORD=""
 
-# Uncomment all lines with "$cfg['Servers'][$i]", change pma users password
-# and comment back the Swekey authentication configuration line
+# Fill the blowfish_secret password with random value,
+# uncomment all lines with "$cfg['Servers'][$i]", change pma users password
+# comment back the Swekey authentication configuration line
+BLOWFISH1=$(printf "%s\n" "\$cfg['blowfish_secret']" | sed 's/[][\.*^$/]/\\&/g')
+PASS=`env LC_CTYPE=C tr -dc "a-zA-Z0-9-_\$\?\{\}\=\^\+\(\)\@\%\|\*\[\]\~" < /dev/urandom | head -c 46`
+BLOWFISH2=$(printf "%s\n" "\$cfg['blowfish_secret'] = '$PASS';" | sed 's/[][\.*^$/]/\\&/g')
 TEXT1=$(printf "%s\n" "// \$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
 TEXT2=$(printf "%s\n" "\$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
 sudo sed \
-  -e "s/\"$TEXT1\"/\"$TEXT2\"/g" \
+  -e "s/^$BLOWFISH1.*/$BLOWFISH2/g" \
+  -e "s/$TEXT1/$TEXT2/g" \
   -e "s/pmapass/$PMA_PASSWORD/g" \
   -e "/swekey-pma.conf/s/^/\/\/ /" \
   /opt/local/apache2/htdocs/phpmyadmin/config.inc.php > /tmp/config.inc.php
 sudo chown root:admin /tmp/config.inc.php
 sudo mv /tmp/config.inc.php /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
+PASS=""
+BLOWFISH2=""
 
 # Restart Apache 2
 sudo /opt/local/apache2/bin/apachectl -k restart
