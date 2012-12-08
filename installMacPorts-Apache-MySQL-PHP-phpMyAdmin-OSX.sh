@@ -240,7 +240,6 @@ echo "FLUSH PRIVILEGES;" >> /tmp/grant.sql
 echo "Enter MySQL's root password."
 mysql5 -u root -p < /tmp/grant.sql
 rm /tmp/grant.sql
-PMA_PASSWORD=""
 
 # Fill the blowfish_secret password with random value,
 # uncomment all lines with "$cfg['Servers'][$i]", change pma users password
@@ -258,6 +257,8 @@ sudo sed \
   /opt/local/apache2/htdocs/phpmyadmin/config.inc.php > /tmp/config.inc.php
 sudo chown root:admin /tmp/config.inc.php
 sudo mv /tmp/config.inc.php /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
+
+PMA_PASSWORD=""
 PASS=""
 BLOWFISH2=""
 
