@@ -223,7 +223,8 @@ sudo cp config.sample.inc.php config.inc.php
 echo "Enter MySQL's root password."
 mysql5 -u root -p < examples/create_tables.sql
 read -e -p "Enter a password for pma user in phpmyadmin database"": " result
-echo "GRANT USAGE ON mysql.* TO 'pma'@'localhost' IDENTIFIED BY '$result';" > /tmp/grant.sql
+PMA_PASSWORD=$result
+echo "GRANT USAGE ON mysql.* TO 'pma'@'localhost' IDENTIFIED BY '$PMA_PASSWORD';" > /tmp/grant.sql
 echo "GRANT SELECT (" >> /tmp/grant.sql
 echo "    Host, User, Select_priv, Insert_priv, Update_priv, Delete_priv," >> /tmp/grant.sql
 echo "    Create_priv, Drop_priv, Reload_priv, Shutdown_priv, Process_priv," >> /tmp/grant.sql
@@ -241,13 +242,17 @@ echo "Enter MySQL's root password."
 mysql5 -u root -p < /tmp/grant.sql
 rm /tmp/grant.sql
 
-#TEXT1=$(printf "%s\n" "// \$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
-#TEXT2=$(printf "%s\n" "\$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
-#sudo sed \
-#  -e "s/\"$TEXT1\"/\"$TEXT2\"/g" \
-#  /opt/local/apache2/htdocs/phpmyadmin/config.inc.php > /tmp/config.inc.php
-#sudo chown root:admin /tmp/config.inc.php
-#sudo mv /tmp/httpd.conf /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
+# Uncomment all lines with "$cfg['Servers'][$i]", change pma users password
+# and comment back the Swekey authentication configuration line
+TEXT1=$(printf "%s\n" "// \$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
+TEXT2=$(printf "%s\n" "\$cfg['Servers'][\$i]" | sed 's/[][\.*^$/]/\\&/g')
+sudo sed \
+  -e "s/\"$TEXT1\"/\"$TEXT2\"/g" \
+  -e "s/pmapass/$PMA_PASSWORD/g" \
+  -e "/swekey-pma.conf/s/^/\/\/ /" \
+  /opt/local/apache2/htdocs/phpmyadmin/config.inc.php > /tmp/config.inc.php
+sudo chown root:admin /tmp/config.inc.php
+sudo mv /tmp/httpd.conf /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
 
 # Restart Apache 2
 sudo /opt/local/apache2/bin/apachectl -k restart
