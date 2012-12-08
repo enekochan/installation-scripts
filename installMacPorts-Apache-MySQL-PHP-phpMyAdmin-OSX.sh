@@ -21,6 +21,7 @@
 # httpd-vhosts.conf:  /opt/local/apache2/conf/extra/httpd-vhosts.conf
 # htdocs folder:      /opt/local/apache2/htdocs
 # php.ini:            /opt/local/etc/php5/php.ini
+# config.inc.php:     /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
 ################################################################################
 #
 # Ref: http://gillesfabio.com/blog/2010/12/17/getting-php-5-3-on-mac-os-x/
