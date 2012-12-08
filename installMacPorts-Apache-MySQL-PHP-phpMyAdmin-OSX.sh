@@ -252,7 +252,7 @@ sudo sed \
   -e "/swekey-pma.conf/s/^/\/\/ /" \
   /opt/local/apache2/htdocs/phpmyadmin/config.inc.php > /tmp/config.inc.php
 sudo chown root:admin /tmp/config.inc.php
-sudo mv /tmp/httpd.conf /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
+sudo mv /tmp/config.inc.php /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
 
 # Restart Apache 2
 sudo /opt/local/apache2/bin/apachectl -k restart
