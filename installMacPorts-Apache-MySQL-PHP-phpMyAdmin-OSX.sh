@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# MacPorts, Apache 2, MySQL 5 and PHP 5.3 installation script for Mac OS X
+# MacPorts, Apache 2, MySQL 5, PHP 5.3 and phpMyAdmin 3.5.4 installation script for Mac OS X
 #
 # Author: enekochan
 # URL: http://tech.enekochan.com
