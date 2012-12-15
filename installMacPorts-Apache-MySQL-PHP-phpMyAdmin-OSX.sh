@@ -121,6 +121,13 @@ sudo chown -R mysql:mysql /opt/local/var/db/mysql5/
 sudo chown -R mysql:mysql /opt/local/var/run/mysql5/
 sudo chown -R mysql:mysql /opt/local/var/log/mysql5/
 
+# Remain compatible with other programs that may look for the socket file in its original location
+sudo ln -s /tmp/mysql.sock /opt/local/var/run/mysql5/mysqld.sock
+
+# Create a my.cnf file from the min template
+# It can also be copied to /etc/my.cnf or /opt/local/var/db/mysql5/my.cnf (deprecated)
+sudo cp /opt/local/share/mysql5/mysql/my-small.cnf /opt/local/my.cnf
+
 if [ $AUTORUN == "y" ]; then
   # Make MySQL 5 autorun on boot
   # This creates the file /Library/LaunchDaemons/org.macports.mysql5.plist
@@ -143,6 +150,7 @@ fi
 
 # Install PHP 5.3
 sudo port install php5 +apache2 +pear
+# You can add mire php5 extension. Run `port search php5-` to see available extensions
 sudo port install php5-mysql php5-sqlite php5-xdebug php5-mbstring php5-iconv php5-posix php5-apc php5-mcrypt
 
 # Register PHP 5.3 with Apache 2
