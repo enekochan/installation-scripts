@@ -20,6 +20,7 @@
 # httpd.conf:         /opt/local/apache2/conf/httpd.conf
 # httpd-vhosts.conf:  /opt/local/apache2/conf/extra/httpd-vhosts.conf
 # htdocs folder:      /opt/local/apache2/htdocs
+# my.cnf:             /opt/local/my.cnf
 # php.ini:            /opt/local/etc/php5/php.ini
 # config.inc.php:     /opt/local/apache2/htdocs/phpmyadmin/config.inc.php
 ################################################################################
