@@ -125,7 +125,7 @@ sudo chown -R mysql:mysql /opt/local/var/log/mysql5/
 # Remain compatible with other programs that may look for the socket file in its original location
 sudo ln -s /tmp/mysql.sock /opt/local/var/run/mysql5/mysqld.sock
 
-# Create a my.cnf file from the min template
+# Create a my.cnf file from the "small" template
 # It can also be copied to /etc/my.cnf or /opt/local/var/db/mysql5/my.cnf (deprecated)
 # This file should be in /opt/local/etc/mysql/my.cnf but /opt/local/share/mysql5/mysql/mysql.server
 # MySQL daemon start/stop script looks for it (in this order) in /etc/my.cnf, /opt/local/my.cnf
