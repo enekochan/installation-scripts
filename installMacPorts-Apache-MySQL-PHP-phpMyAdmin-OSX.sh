@@ -127,6 +127,10 @@ sudo ln -s /tmp/mysql.sock /opt/local/var/run/mysql5/mysqld.sock
 
 # Create a my.cnf file from the min template
 # It can also be copied to /etc/my.cnf or /opt/local/var/db/mysql5/my.cnf (deprecated)
+# This file should be in /opt/local/etc/mysql/my.cnf but /opt/local/share/mysql5/mysql/mysql.server
+# MySQL daemon start/stop script looks for it (in this order) in /etc/my.cnf, /opt/local/my.cnf
+# and /opt/local/var/db/mysql5/my.cnf. If you look the script it uses the $basedir and $datadir
+# variables to search it.
 sudo cp /opt/local/share/mysql5/mysql/my-small.cnf /opt/local/my.cnf
 
 if [ $AUTORUN == "y" ]; then
