@@ -105,6 +105,7 @@ sudo port install apache2
 if [ $AUTORUN == "y" ]; then
   # Make Apache 2 autorun on boot
   # This creates the file /Library/LaunchDaemons/org.macports.apache2.plist
+  # and a /opt/local/bin/daemondo process to manage it.
   sudo port load apache2
 else
   # Run the Apache 2 service
@@ -123,6 +124,7 @@ sudo chown -R mysql:mysql /opt/local/var/log/mysql5/
 if [ $AUTORUN == "y" ]; then
   # Make MySQL 5 autorun on boot
   # This creates the file /Library/LaunchDaemons/org.macports.mysql5.plist
+  # and a /opt/local/bin/daemondo process to manage it.
   sudo port load mysql5-server
 else
   # Run the MySQL 5 service
