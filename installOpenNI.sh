@@ -25,7 +25,9 @@ fi
 
 cd OpenNI
 
-LOG_FILE=`pwd`"/install.log"
+#Create the path for the log file and quote it
+#so paths are correct for command line programs
+LOG_FILE="\""`pwd`"/install.log\""
 
 #rm $LOG_FILE >> /dev/null 2>> /dev/null
 
