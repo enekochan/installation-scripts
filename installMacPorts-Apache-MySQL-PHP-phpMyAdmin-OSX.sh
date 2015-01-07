@@ -83,16 +83,18 @@ LOCALHOST_VIRTUAL_HOST=$result
 VERSION=`sw_vers -productVersion`
 VERSION=${VERSION:3:1}
 if [ "$VERSION" == "6" ]; then
-  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.2.1-10.6-SnowLeopard.pkg
+  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.6-SnowLeopard.pkg
 elif [ "$VERSION" == "7" ]; then
-  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.2.1-10.7-Lion.pkg
+  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.7-Lion.pkg
 elif [ "$VERSION" == "8" ]; then
-  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.2.1-10.8-MountainLion.pkg
+  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.8-MountainLion.pkg
 elif [ "$VERSION" == "9" ]; then
-  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.2.1-10.9-Mavericks.pkg
+  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.9-Mavericks.pkg
+elif [ "$VERSION" == "10" ]; then
+  URL=https://distfiles.macports.org/MacPorts/MacPorts-2.3.3-10.10-Yosemite.pkg
 fi
 if [ "$URL" == "" ]; then
-  echo "MacPort can only be installed automatically in Mac OS X 10.6, 10.7, 10.8 or 10.9"
+  echo "MacPort can only be installed automatically in Mac OS X 10.6, 10.7, 10.8, 10.9 or 10.10"
   exit
 fi
 curl -O $URL
