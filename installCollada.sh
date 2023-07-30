@@ -4,7 +4,7 @@
 # Collada-DOM installation script for Ubuntu
 #
 # Author: enekochan
-# URL: http://tech.enekochan.com
+# URL: https://github.com/enekochan
 #
 
 function readPrompt() {
