@@ -4,7 +4,7 @@
 # ARToolKit 2.72.1 installation script for Ubuntu
 #
 # Author: enekochan
-# URL: http://tech.enekochan.com
+# URL: https://github.com/enekochan
 #
 
 function readPrompt() {
