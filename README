@@ -17,17 +17,14 @@ Run in this order:
 3.- installOpenSceneGraph.sh
 4.- installosgART.sh
 
-If you find any bugs please don't hesitate contacting me (enekochan [at] tech.enekochan.com)
-or asking for permission to patch the files in Github.
-
 More details about the installation process:
 
-http://tech.enekochan.com/en/2012/05/01/install-artoolkit-2-72-1-in-ubuntu-10-10/
-http://tech.enekochan.com/en/2012/05/21/install-artoolkit-2-72-1-in-ubuntu-11-10-and-12-04/
-http://tech.enekochan.com/en/2012/06/10/install-collada-dom-library-in-ubuntu-10-04-10-11-11-04-11-10-and-12-04/
-http://tech.enekochan.com/en/2012/06/10/install-openscenegraph-2-8-3-with-collada-support-in-ubuntu-12-04/
-http://tech.enekochan.com/en/2012/06/10/install-openscenegraph-2-9-6-with-collada-support-in-ubuntu-12-04/
-http://tech.enekochan.com/en/2012/06/10/install-osgart-2-0-rc3-with-openscenegraph-2-8-3-or-2-9-6-with-collada-support-in-ubuntu-12-04/
+https://medium.com/enekochan/install-artoolkit-2-72-1-in-ubuntu-10-10-dbbe2194ee4a
+https://medium.com/enekochan/install-artoolkit-2-72-1-in-ubuntu-11-10-and-12-04-e4759156f683
+https://medium.com/enekochan/install-collada-dom-library-in-ubuntu-10-04-10-11-11-04-11-10-and-12-04-7bf5da288524
+https://medium.com/enekochan/install-openscenegraph-2-8-3-with-collada-support-in-ubuntu-12-04-ddfe4f26f93e
+https://medium.com/enekochan/install-openscenegraph-2-9-6-with-collada-support-in-ubuntu-12-04-90b4d201b9f2
+https://medium.com/enekochan/install-osgart-2-0-rc3-with-openscenegraph-2-8-3-or-2-9-6-with-collada-support-in-ubuntu-12-04-ade9bc1da82d
 
 *******************
 *ARToolKit Patches*
@@ -71,7 +68,7 @@ Just run the "installOpenCV-2.4.2-ffmpeg-OSX-ML.sh" script.
 
 More details about the installation process:
 
-http://tech.enekochan.com/en/2012/07/27/install-opencv-2-4-2-with-ffmpeg-support-in-mac-os-x-10-8/
+https://medium.com/enekochan/install-opencv-2-4-2-with-ffmpeg-support-in-mac-os-x-10-8-8e8d103fd3a
 
 
 **************
