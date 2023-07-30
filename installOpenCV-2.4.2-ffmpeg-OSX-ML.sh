@@ -4,7 +4,7 @@
 # OpenCV 2.4.2 installation script for Mac OS X 10.8 with ffmpeg support
 #
 # Author: enekochan
-# URL: http://tech.enekochan.com
+# URL: https://github.com/enekochan
 #
 
 function readPrompt() {
