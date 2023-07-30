@@ -4,7 +4,7 @@
 # libfreenect installation script for Ubuntu
 #
 # Author: enekochan
-# URL: http://tech.enekochan.com
+# URL: https://github.com/enekochan
 # Source: http://openkinect.org/wiki/Getting_Started#Ubuntu_Manual_Install
 #
 
