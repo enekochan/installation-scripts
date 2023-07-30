@@ -4,7 +4,7 @@
 # MacPorts, Apache 2, MySQL 5, PHP 5.3 and phpMyAdmin 3.5.4 installation script for Mac OS X
 #
 # Author: enekochan
-# URL: http://tech.enekochan.com
+# URL: https://github.com/enekochan
 #
 # It is mandatory to have installed:
 # - Apple Xcode Developer Tools
